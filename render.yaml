@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: ai-content-generation-chatbot
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: OLLAMA_BASE_URL
+        value: http://localhost:11434
+      - key: OLLAMA_MODEL
+        value: llama3.2
+      - key: AI_PROVIDER
+        value: ollama
+      # NOTE: On Render, Ollama will not be accessible at localhost:11434
+      # This configuration is for local development only
+      # For cloud deployment, configure a remote Ollama server or switch to a cloud LLM provider
