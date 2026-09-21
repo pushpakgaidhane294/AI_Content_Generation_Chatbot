@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -35,7 +35,7 @@ def _save_generation(
         tone=tone,
         audience=audience,
         length=length,
-        created_at=datetime.now(timezone.utc)
+        created_at=datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
     )
     db.add(record)
     db.commit()

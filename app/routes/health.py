@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from app.schemas import HealthResponse, OllamaStatusResponse
@@ -17,7 +17,7 @@ async def get_health():
     return {
         "status": "ok",
         "version": "1.0.0",
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": (datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)).isoformat()
     }
 
 

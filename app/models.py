@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from sqlalchemy import Column, Integer, String, Text, DateTime
 from app.database import Base
 
@@ -17,7 +17,7 @@ class ChatHistory(Base):
     tone = Column(String(50), nullable=False)
     audience = Column(String(50), nullable=False)
     length = Column(String(50), nullable=False)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc) + timedelta(hours=5, minutes=30), nullable=False)
 
     def to_dict(self):
         return {

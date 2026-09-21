@@ -772,15 +772,26 @@ function escapeHtml(str) {
 }
 
 function formatCurrentTime() {
-    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return new Date().toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Asia/Kolkata'
+    });
 }
 
 function formatTimestamp(isoStr) {
     if (!isoStr) return formatCurrentTime();
     try {
         const d = new Date(isoStr);
-        return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' +
-               d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return d.toLocaleDateString('en-IN', {
+            month: 'short',
+            day: 'numeric',
+            timeZone: 'Asia/Kolkata'
+        }) + ' ' + d.toLocaleTimeString('en-IN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: 'Asia/Kolkata'
+        });
     } catch {
         return isoStr;
     }
