@@ -261,12 +261,6 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-Open your web browser and navigate to:
-- **Application UI:** [http://localhost:8000](http://localhost:8000)
-- **Interactive Swagger API Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Alternative ReDoc Docs:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
-- **Health Check:** [http://localhost:8000/api/health](http://localhost:8000/api/health)
-
 ### Option 1: Using run.py (Recommended)
 ```powershell
 python run.py
@@ -276,12 +270,6 @@ python run.py
 ```powershell
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-
-Open your web browser and navigate to:
-- **Application UI:** [http://localhost:8000](http://localhost:8000)
-- **Interactive Swagger API Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Alternative ReDoc Docs:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
-
 ---
 
 ## 9. Application Walkthrough & User Guide
@@ -383,175 +371,7 @@ pytest tests/ -v
 
 *All unit tests run independently of whether Ollama is active.*
 
----
-
-## 13. Render Cloud Deployment
-
-### Deployment Architecture and Limitations
-
-This project is configured with `render.yaml` and binds to `0.0.0.0` and the `PORT` environment variable.
-
-> [!IMPORTANT]
-> **Critical Ollama Deployment Limitation:**
-> The primary working mode for this mini-project is **Local Mode** (FastAPI communicating with your local Ollama instance running Meta Llama 3.2).
-> A cloud instance deployed on Render **cannot** automatically connect to `http://localhost:11434` on your personal laptop because localhost on Render refers to the Render server itself, not your local machine.
-
-### Current Deployment Status
-
-The application will deploy successfully to Render, but **AI generation will not work** with the default configuration because:
-- Render cannot access your local Ollama server at `http://localhost:11434`
-- The `render.yaml` is configured for local development by default
-- No cloud LLM provider is currently configured
-
-### Deployment Steps
-
-1. **Initialize Git Repository** (if not already done):
-   ```powershell
-   git init
-   git add .
-   git commit -m "Initial commit"
-   ```
-
-2. **Create GitHub Repository**:
-   - Go to GitHub and create a new repository
-   - Push your local repository to GitHub:
-   ```powershell
-   git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
-   git branch -M main
-   git push -u origin main
-   ```
-
-3. **Deploy to Render**:
-   - Go to [dashboard.render.com](https://dashboard.render.com)
-   - Click "New" → "Web Service"
-   - Connect your GitHub repository
-   - Render will automatically detect the `render.yaml` configuration
-   - Click "Deploy Web Service"
-
-4. **Post-Deployment Configuration**:
-   After deployment, you have two options to enable AI generation:
-
-   **Option A: Use a Remote Ollama Server**
-   - Deploy Ollama to a server with a public IP
-   - Update the `OLLAMA_BASE_URL` environment variable in Render to point to your remote Ollama server
-   - Ensure the remote server is accessible and has the `llama3.2` model installed
-
-   **Option B: Switch to a Cloud LLM Provider**
-   - The modular `app/services/ai_provider.py` layer is designed to support cloud providers
-   - To add cloud support, you would need to:
-     1. Create a new service file (e.g., `app/services/openai_service.py`)
-     2. Update `app/services/ai_provider.py` to include the new provider
-     3. Add the necessary API keys to Render environment variables
-     4. Update `AI_PROVIDER` environment variable in Render
-
-### Repository Status
-
-The repository is now **fully prepared for GitHub and Render deployment**:
-
-✅ **Git Repository Initialized**
-- Clean Git repository with proper commit history
-- No sensitive files committed (.env, database files, etc.)
-- Proper .gitignore configuration
-
-✅ **Render Configuration**
-- `render.yaml` configured with proper build and start commands
-- Health check endpoint configured at `/api/health`
-- Python version specified as 3.13
-- Environment variables documented
-
-✅ **Production Compatibility**
-- Application binds to `0.0.0.0` and uses `PORT` environment variable
-- Static files and templates configured for production serving
-- Database auto-creation on startup
-- Health endpoint works independently of AI service
-
-✅ **Code Quality**
-- All tests passing (13/13 tests)
-- Proper error handling and validation
-- Modular architecture for easy provider switching
-- No hardcoded secrets or API keys
-
-### Next Steps for Deployment
-
-1. **Push to GitHub** (if not already done):
-   ```powershell
-   git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
-   git branch -M main
-   git push -u origin main
-   ```
-
-2. **Connect to Render**:
-   - Go to [dashboard.render.com](https://dashboard.render.com)
-   - Click "New" → "Web Service"
-   - Connect your GitHub repository
-   - Render will auto-detect `render.yaml`
-   - Deploy
-
-3. **Post-Deployment**:
-   - Monitor deployment logs
-   - Test health endpoint: `https://your-app.onrender.com/api/health`
-   - Configure remote Ollama or cloud LLM provider for AI generation
-
-### Expected Deployment Behavior
-
-**What WILL work on Render:**
-- Application starts successfully
-- Health check endpoint `/api/health` returns 200
-- Frontend loads correctly at `/`
-- Static files (CSS, JavaScript) are served
-- API endpoints are accessible
-- Database operations work (SQLite)
-- History functionality works
-
-**What WILL NOT work on Render (with default config):**
-- AI content generation (Ollama connection will fail)
-- `/api/ollama-status` will show "Ollama is not running"
-- Generate, Regenerate, Improve, Shorten, Expand operations will fail
-
-### Environment Variables for Render
-
-Update these environment variables in your Render dashboard after deployment:
-
-```ini
-# AI Provider Configuration
-AI_PROVIDER=ollama
-
-# Ollama Configuration (only works with remote Ollama server)
-OLLAMA_BASE_URL=https://your-remote-ollama-server.com
-OLLAMA_MODEL=llama3.2
-
-# Database Configuration (optional, defaults to SQLite)
-DATABASE_URL=sqlite:///./chatbot.db
-```
-
-### Health Check
-
-The application uses `/api/health` as the health check endpoint, which:
-- Returns HTTP 200 when the application is running
-- Does not depend on Ollama being available
-- Returns a simple JSON response with status and timestamp
-
-This ensures Render can monitor the application health even when AI generation is unavailable.
-
----
-
-## 14. Viva Questions & Answers (Quick Revision)
-
-**Q1: Why did you not send the user's query directly to Ollama?**  
-*Answer:* Raw user input lack persona, tone constraints, length limits, and output format guidelines. The prompt engineering layer ensures consistent, high-quality, and structured Markdown output while preventing hallucinated personal data.
-
-**Q2: How does audience conditioning work in technical explanations?**  
-*Answer:* If the user selects *Beginner*, the prompt template instructs the model to use real-world analogies (e.g. comparing REST APIs to restaurant waiters) and define terms simply. If *Technical Expert* is chosen, the prompt requires discussion of architectural trade-offs, protocols, and implementation considerations.
-
-**Q3: How are the response actions (Improve, Shorten, Expand) implemented?**  
-*Answer:* Rather than performing crude string slicing, the backend uses contextual prompt engineering. The previous generated response is fed back into specialized prompts with editorial personas that instruct Llama 3.2 to rewrite the text appropriately.
-
-**Q4: How does the application prevent raw stack traces from reaching the frontend?**  
-*Answer:* The `OllamaService` intercepts `ConnectError` and `TimeoutException` from `httpx`, wrapping them into user-friendly application errors (`"Ollama is not running. Please start Ollama and try again."`) mapped to HTTP 503/504 statuses.
-
----
-
-## 15. Conclusion & Learning Outcomes
+## 13. Conclusion & Learning Outcomes
 
 Through building this project, the following core competencies were developed:
 1. Orchestrating local LLMs via REST APIs without paid commercial services.
@@ -560,5 +380,3 @@ Through building this project, the following core competencies were developed:
 4. Implementing local persistence with SQLite and SQLAlchemy.
 5. Building responsive, accessible user interfaces using pure web standards (HTML5/CSS3/JavaScript).
 =======
-# AI_Content_Generation_Chatbot
->>>>>>> 1c8c133cebb8153ea7954d6da1b242fc545feadd
