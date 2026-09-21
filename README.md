@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # AI Content Generation Chatbot Using LLM and Prompt Engineering
 
 A production-style academic mini-project designed for a **Generative AI / AI curriculum**. Built from scratch using **Python FastAPI**, **Vanilla HTML5/CSS3/JavaScript**, **SQLite with SQLAlchemy**, and **Ollama (Llama 3.2)**.
@@ -558,3 +559,6 @@ Through building this project, the following core competencies were developed:
 3. Architecting clean, decoupled Python FastAPI backends with Pydantic validation.
 4. Implementing local persistence with SQLite and SQLAlchemy.
 5. Building responsive, accessible user interfaces using pure web standards (HTML5/CSS3/JavaScript).
+=======
+# AI_Content_Generation_Chatbot
+>>>>>>> 1c8c133cebb8153ea7954d6da1b242fc545feadd
