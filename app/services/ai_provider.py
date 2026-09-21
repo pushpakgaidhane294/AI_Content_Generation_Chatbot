@@ -1,12 +1,12 @@
 """
 AI Provider abstraction layer.
 Swap providers without touching routes or frontend.
-Supported: ollama (local), openai (future), groq (future).
+Supported: ollama (local), groq (FREE cloud), openai (future).
 """
 
 import os
 
-AI_PROVIDER = os.getenv("AI_PROVIDER", "ollama").lower()
+AI_PROVIDER = os.getenv("AI_PROVIDER", "groq").lower()
 
 
 def get_ai_service():
@@ -17,18 +17,19 @@ def get_ai_service():
     if AI_PROVIDER == "ollama":
         from app.services.ollama_service import ollama_service
         return ollama_service
+    
+    elif AI_PROVIDER == "groq":
+        from app.services.groq_service import groq_service
+        return groq_service
 
     # Future providers — add here when needed:
     # elif AI_PROVIDER == "openai":
     #     from app.services.openai_service import openai_service
     #     return openai_service
-    # elif AI_PROVIDER == "groq":
-    #     from app.services.groq_service import groq_service
-    #     return groq_service
 
     else:
         raise ValueError(
             f"Unknown AI_PROVIDER: '{AI_PROVIDER}'. "
-            "Supported values: 'ollama'. "
+            "Supported values: 'ollama', 'groq'. "
             "Set the AI_PROVIDER environment variable to a supported provider."
         )
