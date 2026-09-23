@@ -137,11 +137,10 @@ class HistoryListResponse(BaseModel):
     items: List[HistoryItemResponse]
 
 
-class OllamaStatusResponse(BaseModel):
-    connected: bool
+class GroqStatusResponse(BaseModel):
+    provider: str
+    configured: bool
     model: str
-    available_models: List[str]
-    base_url: str
     message: str
 
 

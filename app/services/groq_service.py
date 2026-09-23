@@ -1,123 +1,90 @@
 """
-Groq Cloud LLM Service (FREE).
-Communicates with Groq API for free cloud-based generation.
-No credit card required, completely free tier available.
+Groq API Service.
+Communicates with the Groq REST API.
+Handles API key presence, model availability, generation requests, and user-friendly error wrapping.
 """
 
 import os
 from typing import Dict, Any, Optional
-import httpx
+from groq import AsyncGroq, APIError, AuthenticationError
 from dotenv import load_dotenv
 
 load_dotenv()
 
-
 class GroqServiceError(Exception):
-    """Custom exception for Groq errors."""
+    """Custom application-level exception for Groq errors with user-friendly messages."""
     def __init__(self, message: str, status_code: int = 503):
         super().__init__(message)
         self.message = message
         self.status_code = status_code
 
-
 class GroqService:
-    """Service wrapper for Groq API (FREE)."""
-    
+    """
+    Service wrapper for interacting with the Groq API.
+    """
+
     def __init__(self):
         self.api_key = os.getenv("GROQ_API_KEY")
-        self.base_url = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
-        self.model = os.getenv("GROQ_MODEL", "llama3-8b-8192")
-        self.timeout = float(os.getenv("GROQ_TIMEOUT", "120.0"))
-        
-        if not self.api_key:
-            raise ValueError("GROQ_API_KEY environment variable is required")
-    
+        self.model = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+        self.client = AsyncGroq(api_key=self.api_key) if self.api_key else None
+
     async def check_status(self) -> Dict[str, Any]:
-        """Check if Groq API is accessible."""
-        try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                response = await client.get(
-                    f"{self.base_url}/models",
-                    headers={"Authorization": f"Bearer {self.api_key}"}
-                )
-            
-            if response.status_code == 200:
-                return {
-                    "connected": True,
-                    "model": self.model,
-                    "available_models": [self.model],
-                    "base_url": self.base_url,
-                    "message": "Connected to Groq API (FREE)"
-                }
-            else:
-                return {
-                    "connected": False,
-                    "model": self.model,
-                    "available_models": [],
-                    "base_url": self.base_url,
-                    "message": f"Groq API returned HTTP {response.status_code}"
-                }
-        except Exception as exc:
+        """
+        Verifies if the Groq client is configured.
+        Returns diagnostic dictionary.
+        """
+        if not self.api_key:
             return {
-                "connected": False,
+                "provider": "Groq",
+                "configured": False,
                 "model": self.model,
-                "available_models": [],
-                "base_url": self.base_url,
-                "message": f"Groq API error: {str(exc)}"
+                "message": "Groq API is not configured. Please check your GROQ_API_KEY."
             }
-    
+        
+        return {
+            "provider": "Groq",
+            "configured": True,
+            "model": self.model,
+            "message": "Connected and model ready."
+        }
+
     async def generate(self, prompt: str, system_override: Optional[str] = None) -> str:
-        """Generate content using Groq API (FREE)."""
+        """
+        Sends an engineered prompt to Groq and returns the generated content.
+        Raises GroqServiceError with helpful user-facing messages upon failure.
+        """
+        if not self.api_key or not self.client:
+            raise GroqServiceError("Groq API is not configured. Please check your GROQ_API_KEY.", status_code=500)
+
+        messages = []
+        if system_override:
+            messages.append({"role": "system", "content": system_override})
+        
+        messages.append({"role": "user", "content": prompt})
+
         try:
-            headers = {
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
-            }
+            chat_completion = await self.client.chat.completions.create(
+                messages=messages,
+                model=self.model,
+                temperature=0.7,
+                top_p=0.9,
+            )
             
-            payload = {
-                "model": self.model,
-                "messages": [
-                    {"role": "system", "content": system_override or "You are a helpful assistant."},
-                    {"role": "user", "content": prompt}
-                ],
-                "temperature": 0.7,
-                "max_tokens": 2048
-            }
-            
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(
-                    f"{self.base_url}/chat/completions",
-                    headers=headers,
-                    json=payload
-                )
-            
-            if response.status_code == 401:
-                raise GroqServiceError(
-                    "Invalid Groq API key. Please check your GROQ_API_KEY environment variable.",
-                    status_code=401
-                )
-            elif response.status_code != 200:
-                raise GroqServiceError(
-                    f"Groq API error: {response.text}",
-                    status_code=response.status_code
-                )
-            
-            data = response.json()
-            generated_text = data["choices"][0]["message"]["content"].strip()
+            generated_text = chat_completion.choices[0].message.content
             
             if not generated_text:
-                raise GroqServiceError("Groq returned empty response", status_code=500)
+                raise GroqServiceError("Groq returned an empty response. Please try modifying your prompt.", status_code=500)
+                
+            return generated_text.strip()
             
-            return generated_text
-            
-        except GroqServiceError:
-            raise
+        except AuthenticationError:
+            raise GroqServiceError("Groq API authentication failed. Please check your GROQ_API_KEY.", status_code=401)
+        except APIError as e:
+            err_msg = str(e)
+            if "model_decommissioned" in err_msg or "does not exist" in err_msg or "is not supported" in err_msg:
+                raise GroqServiceError(f"The configured Groq model is unavailable. Please check GROQ_MODEL. Details: {err_msg}", status_code=400)
+            raise GroqServiceError(f"Groq API returned an error: {err_msg}", status_code=500)
         except Exception as exc:
-            raise GroqServiceError(
-                f"Groq generation error: {str(exc)}",
-                status_code=500
-            )
+            raise GroqServiceError(f"An unexpected error occurred during content generation: {str(exc)}", status_code=500)
 
-
-# Singleton instance
 groq_service = GroqService()

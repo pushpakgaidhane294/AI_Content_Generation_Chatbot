@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="AI Content Generation Chatbot",
-    description="Production-style Academic Mini-Project using FastAPI, Ollama (Llama 3.2), and Prompt Engineering",
+    description="Production-style Academic Mini-Project using FastAPI, Groq (openai/gpt-oss-120b), and Prompt Engineering",
     version="1.0.0",
     lifespan=lifespan,
 )

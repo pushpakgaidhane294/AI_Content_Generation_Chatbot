@@ -1,7 +1,7 @@
 <<<<<<< HEAD
 # AI Content Generation Chatbot Using LLM and Prompt Engineering
 
-A production-style academic mini-project designed for a **Generative AI / AI curriculum**. Built from scratch using **Python FastAPI**, **Vanilla HTML5/CSS3/JavaScript**, **SQLite with SQLAlchemy**, and **Ollama (Llama 3.2)**.
+A production-style academic mini-project designed for a **Generative AI / AI curriculum**. Built from scratch using **Python FastAPI**, **Vanilla HTML5/CSS3/JavaScript**, **SQLite with SQLAlchemy**, and **Groq (gpt-oss-120b)**.
 
 ---
 
@@ -28,7 +28,7 @@ Standard interactions with Large Language Models often suffer from:
 
 ### Project Objectives
 - Demonstrate practical **Prompt Engineering techniques** in a production-style architecture.
-- Integrate a local, privacy-preserving LLM runtime (**Ollama with Llama 3.2**) running on local consumer hardware.
+- Integrate a local, privacy-preserving LLM runtime (**Groq with gpt-oss-120b**) running on local consumer hardware.
 - Deliver an intuitive, responsive Single Page Web Application (**HTML5/CSS3/JavaScript**) without heavy frontend frameworks.
 - Implement robust persistence for conversation history using **SQLite** and **SQLAlchemy ORM**.
 - Provide complete REST API endpoints with Pydantic validation and comprehensive test suites.
@@ -42,8 +42,8 @@ Standard interactions with Large Language Models often suffer from:
 | **Frontend** | HTML5, CSS3, Vanilla JavaScript | Lightweight, zero-build-step, fast-loading, pure web standards |
 | **Backend** | Python 3.10+, FastAPI, Uvicorn | High-performance asynchronous REST API framework with automatic OpenAPI documentation |
 | **Data Validation** | Pydantic v2 | Type safety, request body parsing, and field validation |
-| **AI Runtime** | Ollama (Local Daemon) | Zero-cost, privacy-first local LLM inference without paid API keys |
-| **LLM Model** | Meta Llama 3.2 (3.2B parameters) | State-of-the-art lightweight open-weights instruction model |
+| **AI Runtime** | Groq (Local Daemon) | Zero-cost, privacy-first local LLM inference without paid API keys |
+| **LLM Model** | Meta gpt-oss-120b (3.2B parameters) | State-of-the-art lightweight open-weights instruction model |
 | **Database** | SQLite + SQLAlchemy ORM | Lightweight, zero-configuration local database with ORM mapping |
 | **Testing** | Pytest, FastAPI TestClient | Automated test suite verifying health, schemas, and prompt builders |
 | **Deployment** | Render-compatible (`run.py`, `render.yaml`) | Production-ready port binding and modular cloud provider adapter |
@@ -65,7 +65,7 @@ Standard interactions with Large Language Models often suffer from:
 ├──────────────────────────────┬──────────────────────────────┤
 │  Routes Layer (/api)         │  Controllers                 │
 │   ├── health.py              │   ├── GET /api/health        │
-│   │                          │   └── GET /api/ollama-status │
+│   │                          │   └── GET /api/Groq-status │
 │   ├── chat.py                │   ├── POST /api/generate     │
 │   │                          │   ├── POST /api/regenerate   │
 │   │                          │   ├── POST /api/improve      │
@@ -79,12 +79,12 @@ Standard interactions with Large Language Models often suffer from:
 │   │    Enforces: Role, Task, Context, Audience, Tone,       │
 │   │              Length, Requirements, Output Format        │
 │   │                                                         │
-│   └── OllamaService (app/services/ollama_service.py)        │
-│        Async HTTP Client connecting to http://127.0.0.1:11434│
+│   └── GroqService (app/services/Groq_service.py)        │
+│        Async HTTP Client connecting to https://api.groq.com│
 ├──────────────────────────────┬──────────────────────────────┤
 │  Database Layer              │  Local LLM Runtime           │
-│   ├── SQLite (chatbot.db)    │   └── Ollama Daemon          │
-│   └── SQLAlchemy ORM         │        └── Llama 3.2 (3.2B)  │
+│   ├── SQLite (chatbot.db)    │   └── Groq Daemon          │
+│   └── SQLAlchemy ORM         │        └── gpt-oss-120b (3.2B)  │
 └──────────────────────────────┴──────────────────────────────┘
 ```
 
@@ -147,11 +147,11 @@ AI_Content_Generation_Chatbot/
 │   │   ├── __init__.py             # Route package exports
 │   │   ├── chat.py                 # Generation & transformation endpoints
 │   │   ├── history.py              # CRUD history endpoints
-│   │   └── health.py               # Health & Ollama diagnostic checks
+│   │   └── health.py               # Health & Groq diagnostic checks
 │   │
 │   ├── services/
 │   │   ├── __init__.py             # Services package exports
-│   │   ├── ollama_service.py       # Async HTTP client for Ollama API
+│   │   ├── Groq_service.py       # Async HTTP client for Groq API
 │   │   └── prompt_service.py       # Prompt orchestration & transformers
 │   │
 │   └── prompts/
@@ -187,23 +187,23 @@ AI_Content_Generation_Chatbot/
 
 ## 7. Prerequisites & Installation (Windows)
 
-### Step 1: Install Ollama and Pull Llama 3.2
-1. Download Ollama for Windows from [https://ollama.com](https://ollama.com).
+### Step 1: Install Groq and Pull gpt-oss-120b
+1. Download Groq for Windows from [https://Groq.com](https://Groq.com).
 2. Open PowerShell and verify installation:
    ```powershell
-   ollama --version
+   Groq --version
    ```
-3. Pull the Meta Llama 3.2 model:
+3. Pull the Meta gpt-oss-120b model:
    ```powershell
-   ollama pull llama3.2
+   Groq pull openai/gpt-oss-120b
    ```
 4. Verify the installed model:
    ```powershell
-   ollama list
+   Groq list
    ```
-5. Ensure Ollama is running (it runs in the background automatically or can be started via):
+5. Ensure Groq is running (it runs in the background automatically or can be started via):
    ```powershell
-   ollama run llama3.2
+   Groq run openai/gpt-oss-120b
    ```
 
 ### Step 2: Clone / Open the Project Folder
@@ -234,8 +234,8 @@ Copy-Item .env.example .env
 ```
 Default `.env` settings:
 ```ini
-OLLAMA_BASE_URL=http://127.0.0.1:11434
-OLLAMA_MODEL=llama3.2
+Groq_BASE_URL=https://api.groq.com
+Groq_MODEL=openai/gpt-oss-120b
 HOST=0.0.0.0
 PORT=8000
 ```
@@ -287,8 +287,8 @@ Open your web browser and navigate to:
 ## 9. Application Walkthrough & User Guide
 
 ### 1. Dashboard View
-- Displays real-time **Ollama Runtime Diagnostics** (Connected / Disconnected).
-- Displays model status (`llama3.2`), URL (`http://127.0.0.1:11434`), and feature summaries.
+- Displays real-time **Groq Runtime Diagnostics** (Connected / Disconnected).
+- Displays model status (`openai/gpt-oss-120b`), URL (`https://api.groq.com`), and feature summaries.
 
 ### 2. AI Chatbot View
 1. **Configure Parameters**:
@@ -301,7 +301,7 @@ Open your web browser and navigate to:
 4. **Trigger Actions**:
    - **Copy**: Copies response text to clipboard with instant visual feedback (*Copied!*).
    - **Download (.txt)**: Generates and downloads a `.txt` file using client-side JavaScript Blob.
-   - **Regenerate**: Asks Llama 3.2 for an alternative variation with the same constraints.
+   - **Regenerate**: Asks gpt-oss-120b for an alternative variation with the same constraints.
    - **Improve**: Polishes vocabulary and flow while preserving structure.
    - **Shorten**: Condenses output to high-impact brevity.
    - **Expand**: Elaborates with deeper details, examples, and analysis.
@@ -325,7 +325,7 @@ Open your web browser and navigate to:
 | :--- | :--- | :--- | :--- |
 | `GET` | `/` | Serves frontend Single Page Application | None |
 | `GET` | `/api/health` | Backend status and uptime timestamp | None |
-| `GET` | `/api/ollama-status` | Checks Ollama connectivity & model presence | None |
+| `GET` | `/api/Groq-status` | Checks Groq connectivity & model presence | None |
 | `POST` | `/api/generate` | Generates content using prompt engineering | `GenerateRequest` |
 | `POST` | `/api/regenerate` | Generates alternative response variation | `RegenerateRequest` |
 | `POST` | `/api/improve` | Polishes and enhances existing response | `TransformRequest` |
@@ -368,7 +368,7 @@ pytest tests/ -v
 
 ### Test Coverage:
 - `test_health_endpoint`: Backend health and timestamp verification.
-- `test_ollama_status_endpoint`: Checks diagnostic response structure.
+- `test_Groq_status_endpoint`: Checks diagnostic response structure.
 - `test_home_page_serves_html`: Ensures SPA template loads correctly.
 - `test_empty_prompt_validation`: Verifies HTTP 422 for blank prompts.
 - `test_invalid_content_type_validation`: Verifies rejection of unsupported types.
@@ -381,7 +381,7 @@ pytest tests/ -v
 - `test_prompt_service_routing`: Verifies central builder routing.
 - `test_transformation_prompts`: Verifies improve, shorten, and expand builders.
 
-*All unit tests run independently of whether Ollama is active.*
+*All unit tests run independently of whether Groq is active.*
 
 ---
 
@@ -392,14 +392,14 @@ pytest tests/ -v
 This project is configured with `render.yaml` and binds to `0.0.0.0` and the `PORT` environment variable.
 
 > [!IMPORTANT]
-> **Critical Ollama Deployment Limitation:**
-> The primary working mode for this mini-project is **Local Mode** (FastAPI communicating with your local Ollama instance running Meta Llama 3.2).
-> A cloud instance deployed on Render **cannot** automatically connect to `http://localhost:11434` on your personal laptop because localhost on Render refers to the Render server itself, not your local machine.
+> **Critical Groq Deployment Limitation:**
+> The primary working mode for this mini-project is **Local Mode** (FastAPI communicating with your local Groq instance running Meta gpt-oss-120b).
+> A cloud instance deployed on Render **cannot** automatically connect to `the local machine` on your personal laptop because localhost on Render refers to the Render server itself, not your local machine.
 
 ### Current Deployment Status
 
 The application will deploy successfully to Render, but **AI generation will not work** with the default configuration because:
-- Render cannot access your local Ollama server at `http://localhost:11434`
+- Render cannot access your local Groq server at `the local machine`
 - The `render.yaml` is configured for local development by default
 - No cloud LLM provider is currently configured
 
@@ -431,10 +431,10 @@ The application will deploy successfully to Render, but **AI generation will not
 4. **Post-Deployment Configuration**:
    After deployment, you have two options to enable AI generation:
 
-   **Option A: Use a Remote Ollama Server**
-   - Deploy Ollama to a server with a public IP
-   - Update the `OLLAMA_BASE_URL` environment variable in Render to point to your remote Ollama server
-   - Ensure the remote server is accessible and has the `llama3.2` model installed
+   **Option A: Use a Remote Groq Server**
+   - Deploy Groq to a server with a public IP
+   - Update the `Groq_BASE_URL` environment variable in Render to point to your remote Groq server
+   - Ensure the remote server is accessible and has the `openai/gpt-oss-120b` model installed
 
    **Option B: Switch to a Cloud LLM Provider**
    - The modular `app/services/ai_provider.py` layer is designed to support cloud providers
@@ -490,7 +490,7 @@ The repository is now **fully prepared for GitHub and Render deployment**:
 3. **Post-Deployment**:
    - Monitor deployment logs
    - Test health endpoint: `https://your-app.onrender.com/api/health`
-   - Configure remote Ollama or cloud LLM provider for AI generation
+   - Configure remote Groq or cloud LLM provider for AI generation
 
 ### Expected Deployment Behavior
 
@@ -504,8 +504,8 @@ The repository is now **fully prepared for GitHub and Render deployment**:
 - History functionality works
 
 **What WILL NOT work on Render (with default config):**
-- AI content generation (Ollama connection will fail)
-- `/api/ollama-status` will show "Ollama is not running"
+- AI content generation (Groq connection will fail)
+- `/api/Groq-status` will show "Groq is not running"
 - Generate, Regenerate, Improve, Shorten, Expand operations will fail
 
 ### Environment Variables for Render
@@ -514,11 +514,11 @@ Update these environment variables in your Render dashboard after deployment:
 
 ```ini
 # AI Provider Configuration
-AI_PROVIDER=ollama
+AI_PROVIDER=Groq
 
-# Ollama Configuration (only works with remote Ollama server)
-OLLAMA_BASE_URL=https://your-remote-ollama-server.com
-OLLAMA_MODEL=llama3.2
+# Groq Configuration (only works with remote Groq server)
+Groq_BASE_URL=https://your-remote-Groq-server.com
+Groq_MODEL=openai/gpt-oss-120b
 
 # Database Configuration (optional, defaults to SQLite)
 DATABASE_URL=sqlite:///./chatbot.db
@@ -528,7 +528,7 @@ DATABASE_URL=sqlite:///./chatbot.db
 
 The application uses `/api/health` as the health check endpoint, which:
 - Returns HTTP 200 when the application is running
-- Does not depend on Ollama being available
+- Does not depend on Groq being available
 - Returns a simple JSON response with status and timestamp
 
 This ensures Render can monitor the application health even when AI generation is unavailable.
@@ -537,17 +537,17 @@ This ensures Render can monitor the application health even when AI generation i
 
 ## 14. Viva Questions & Answers (Quick Revision)
 
-**Q1: Why did you not send the user's query directly to Ollama?**  
+**Q1: Why did you not send the user's query directly to Groq?**  
 *Answer:* Raw user input lack persona, tone constraints, length limits, and output format guidelines. The prompt engineering layer ensures consistent, high-quality, and structured Markdown output while preventing hallucinated personal data.
 
 **Q2: How does audience conditioning work in technical explanations?**  
 *Answer:* If the user selects *Beginner*, the prompt template instructs the model to use real-world analogies (e.g. comparing REST APIs to restaurant waiters) and define terms simply. If *Technical Expert* is chosen, the prompt requires discussion of architectural trade-offs, protocols, and implementation considerations.
 
 **Q3: How are the response actions (Improve, Shorten, Expand) implemented?**  
-*Answer:* Rather than performing crude string slicing, the backend uses contextual prompt engineering. The previous generated response is fed back into specialized prompts with editorial personas that instruct Llama 3.2 to rewrite the text appropriately.
+*Answer:* Rather than performing crude string slicing, the backend uses contextual prompt engineering. The previous generated response is fed back into specialized prompts with editorial personas that instruct gpt-oss-120b to rewrite the text appropriately.
 
 **Q4: How does the application prevent raw stack traces from reaching the frontend?**  
-*Answer:* The `OllamaService` intercepts `ConnectError` and `TimeoutException` from `httpx`, wrapping them into user-friendly application errors (`"Ollama is not running. Please start Ollama and try again."`) mapped to HTTP 503/504 statuses.
+*Answer:* The `GroqService` intercepts `ConnectError` and `TimeoutException` from `httpx`, wrapping them into user-friendly application errors (`"Groq is not running. Please start Groq and try again."`) mapped to HTTP 503/504 statuses.
 
 ---
 

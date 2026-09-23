@@ -3,6 +3,6 @@ Services package initialization.
 """
 
 from app.services.prompt_service import PromptService
-from app.services.ollama_service import OllamaService
+from app.services.groq_service import GroqService
 
-__all__ = ["PromptService", "OllamaService"]
+__all__ = ["PromptService", "GroqService"]

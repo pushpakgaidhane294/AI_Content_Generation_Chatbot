@@ -11,7 +11,7 @@ services:
       - key: AI_PROVIDER
         value: groq
       - key: GROQ_MODEL
-        value: llama3-8b-8192
+        value: llama3-70b-8192
       # IMPORTANT: Add your GROQ_API_KEY in Render dashboard environment variables
       # Get free API key from: https://console.groq.com/
       # GROQ_API_KEY: your_api_key_here

@@ -4,15 +4,15 @@
  */
 
 // Application State
-const state = {
+const messageDataStore = {};`nconst state = {
     activeTab: 'dashboard',
     sessionId: 'session-' + Math.random().toString(36).substring(2, 9),
     isGenerating: false,
     historyCache: [],
     selectedHistoryItem: null,
-    ollamaStatus: {
+    groqStatus: {
         connected: false,
-        model: 'llama3.2',
+        model: 'openai/gpt-oss-120b',
         message: ''
     }
 };
@@ -26,11 +26,11 @@ const elements = {
         history: document.getElementById('view-history'),
         about: document.getElementById('view-about')
     },
-    ollamaPill: document.getElementById('ollama-status-pill'),
-    ollamaText: document.getElementById('ollama-status-text'),
+    groqPill: document.getElementById('groq-status-pill'),
+    groqText: document.getElementById('groq-status-text'),
     modelName: document.getElementById('model-name'),
     offlineBanner: document.getElementById('offline-banner'),
-    retryOllamaBtn: document.getElementById('retry-ollama-btn'),
+    retrygroqBtn: document.getElementById('retry-groq-btn'),
     
     // Dashboard Diagnostics
     diagModel: document.getElementById('diag-model'),
@@ -77,16 +77,16 @@ const elements = {
 document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
     initKeyboardShortcuts();
-    checkOllamaStatus();
+    checkgroqStatus();
     loadHistory();
 
-    // Periodic check for Ollama status every 30 seconds
-    setInterval(checkOllamaStatus, 30000);
+    // Periodic check for groq status every 30 seconds
+    setInterval(checkgroqStatus, 30000);
 
-    if (elements.retryOllamaBtn) {
-        elements.retryOllamaBtn.addEventListener('click', () => {
-            showToast('Rechecking Ollama daemon...', 'info');
-            checkOllamaStatus();
+    if (elements.retrygroqBtn) {
+        elements.retrygroqBtn.addEventListener('click', () => {
+            showToast('Rechecking groq daemon...', 'info');
+            checkgroqStatus();
         });
     }
 
@@ -126,41 +126,41 @@ function switchTab(tabName) {
     if (tabName === 'history') {
         loadHistory();
     } else if (tabName === 'dashboard') {
-        checkOllamaStatus();
+        checkgroqStatus();
     }
 }
 
 // ============================================================================
-// Ollama Status Check
 // ============================================================================
-async function checkOllamaStatus() {
+// Groq Status Check
+// ============================================================================
+async function checkgroqStatus() {
     try {
-        const response = await fetch('/api/ollama-status');
+        const response = await fetch('/api/groq-status');
         const data = await response.json();
-        state.ollamaStatus = data;
-
-        updateOllamaUI(data);
+        state.groqStatus = data;
+        updategroqUI(data);
     } catch (err) {
-        console.warn('Ollama status check failed:', err);
+        console.warn('Groq status check failed:', err);
         const offlineData = {
-            connected: false,
-            model: 'llama3.2',
-            base_url: 'http://127.0.0.1:11434',
-            message: 'Ollama is not running. Please start Ollama and try again.'
+            configured: false,
+            model: 'openai/gpt-oss-120b',
+            message: 'Unable to connect to Groq API. Please try again.'
         };
-        state.ollamaStatus = offlineData;
-        updateOllamaUI(offlineData);
+        state.groqStatus = offlineData;
+        updategroqUI(offlineData);
     }
 }
 
-function updateOllamaUI(data) {
-    if (!elements.ollamaPill) return;
+function updategroqUI(data) {
+    if (!elements.groqPill) return;
 
-    elements.ollamaPill.className = 'status-pill ' + (data.connected ? 'connected' : 'disconnected');
-    elements.ollamaText.textContent = data.connected ? 'Connected' : 'Not Connected';
-    elements.modelName.textContent = data.model || 'llama3.2';
+    const isReady = data.configured;
+    elements.groqPill.className = 'status-pill ' + (isReady ? 'connected' : 'disconnected');
+    elements.groqText.textContent = isReady ? 'Configured' : 'Not Configured';
+    elements.modelName.textContent = data.model || 'openai/gpt-oss-120b';
 
-    if (data.connected) {
+    if (isReady) {
         elements.offlineBanner.classList.add('hidden');
         if (elements.cardStatusIndicator) {
             elements.cardStatusIndicator.className = 'badge badge-green';
@@ -170,12 +170,12 @@ function updateOllamaUI(data) {
         elements.offlineBanner.classList.remove('hidden');
         if (elements.cardStatusIndicator) {
             elements.cardStatusIndicator.className = 'badge badge-red';
-            elements.cardStatusIndicator.textContent = 'Service Offline';
+            elements.cardStatusIndicator.textContent = 'API Key Missing';
         }
     }
 
-    if (elements.diagModel) elements.diagModel.textContent = data.model;
-    if (elements.diagUrl) elements.diagUrl.textContent = data.base_url || 'http://127.0.0.1:11434';
+    if (elements.diagModel) elements.diagModel.textContent = data.model || 'openai/gpt-oss-120b';
+    if (elements.diagUrl) elements.diagUrl.textContent = 'https://api.groq.com/openai/v1';
     if (elements.diagMsg) elements.diagMsg.textContent = data.message;
 }
 
@@ -221,9 +221,9 @@ async function handleGenerateSubmit(e) {
 
     if (state.isGenerating) return false;
 
-    // Check if Ollama is connected; warn user but let them try if they wish
-    if (!state.ollamaStatus.connected) {
-        showToast('Ollama is currently not running. Please start Ollama.', 'error');
+    // Check if groq is connected; warn user but let them try if they wish
+    if (!state.groqStatus.connected) {
+        showToast('groq is currently not running. Please start groq.', 'error');
     }
 
     // Hide empty state
@@ -381,10 +381,13 @@ function appendAiMessage(data) {
 
     const cleanText = data.generated_response;
     const msgId = 'ai-msg-' + (data.id || Date.now());
+    
+    // Store data so we don't need to inline JSON stringify it (which breaks on quotes)
+    messageDataStore[msgId] = data;
 
     msgDiv.innerHTML = `
         <div class="message-header">
-            <span class="message-sender">AI Assistant (${data.model || 'llama3.2'})</span>
+            <span class="message-sender">AI Assistant (${data.model || 'openai/gpt-oss-120b'})</span>
             <span class="badge badge-blue">${escapeHtml(data.content_type)}</span>
             <span class="pill">${escapeHtml(data.tone)}</span>
             <span class="pill">${escapeHtml(data.audience)}</span>
@@ -397,23 +400,23 @@ function appendAiMessage(data) {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                 <span>Copy</span>
             </button>
-            <button class="action-btn" onclick="downloadResponseText('${cleanText.replace(/'/g, "\\'")}', '${data.content_type}')">
+            <button class="action-btn" onclick="downloadFromStore('${msgId}')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 <span>Download (.txt)</span>
             </button>
-            <button class="action-btn" onclick='triggerActionFromButton("regenerate", ${JSON.stringify(data)})'>
+            <button class="action-btn" onclick="triggerActionFromButton('regenerate', '${msgId}')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
                 <span>Regenerate</span>
             </button>
-            <button class="action-btn" onclick='triggerActionFromButton("improve", ${JSON.stringify(data)})'>
+            <button class="action-btn" onclick="triggerActionFromButton('improve', '${msgId}')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                 <span>Improve</span>
             </button>
-            <button class="action-btn" onclick='triggerActionFromButton("shorten", ${JSON.stringify(data)})'>
+            <button class="action-btn" onclick="triggerActionFromButton('shorten', '${msgId}')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/></svg>
                 <span>Shorten</span>
             </button>
-            <button class="action-btn" onclick='triggerActionFromButton("expand", ${JSON.stringify(data)})'>
+            <button class="action-btn" onclick="triggerActionFromButton('expand', '${msgId}')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
                 <span>Expand</span>
             </button>
@@ -424,8 +427,14 @@ function appendAiMessage(data) {
     scrollToBottom();
 }
 
-function triggerActionFromButton(actionType, data) {
-    executeResponseAction(actionType, data);
+function triggerActionFromButton(actionType, msgId) {
+    const data = messageDataStore[msgId];
+    if (data) executeResponseAction(actionType, data);
+}
+
+function downloadFromStore(msgId) {
+    const data = messageDataStore[msgId];
+    if (data) downloadResponseText(data.generated_response, data.content_type);
 }
 
 function appendLoadingBubble(id) {
@@ -464,7 +473,7 @@ function appendErrorMessage(msg) {
         </div>
         <div class="message-body" style="background-color: var(--danger-bg); border-color: rgba(239, 68, 68, 0.4); color: #fee2e2;">
             <strong>Generation Notice:</strong> ${escapeHtml(msg)}
-            <br><small style="color:#fca5a5; display:block; margin-top:4px;">Check if Ollama is running in background using command: <code>ollama run llama3.2</code></small>
+            <br><small style="color:#fca5a5; display:block; margin-top:4px;">Please check your Groq API key and model configuration.</small>
         </div>
     `;
     elements.messagesWindow.appendChild(errorDiv);

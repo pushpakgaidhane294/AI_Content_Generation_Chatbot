@@ -10,7 +10,7 @@ from app.schemas import (
     GenerateResponse,
 )
 from app.services.prompt_service import PromptService
-from app.services.ollama_service import OllamaServiceError
+from app.services.groq_service import GroqServiceError
 from app.services.ai_provider import get_ai_service
 
 router = APIRouter(prefix="/api", tags=["Content Generation"])
@@ -47,7 +47,7 @@ def _save_generation(
 async def generate_content(req: GenerateRequest, db: Session = Depends(get_db)):
     """
     Main content generation endpoint.
-    Builds an engineered prompt and queries Ollama (Llama 3.2), saving the result to SQLite.
+    Builds an engineered prompt and queries Groq (Llama 3.2), saving the result to SQLite.
     """
     try:
         engineered_prompt = PromptService.build_prompt(
@@ -85,7 +85,7 @@ async def generate_content(req: GenerateRequest, db: Session = Depends(get_db)):
             model=ai_service.model if hasattr(ai_service, 'model') else 'unknown'
         )
 
-    except OllamaServiceError as err:
+    except GroqServiceError as err:
         raise HTTPException(status_code=err.status_code, detail=err.message)
     except HTTPException:
         raise
@@ -138,7 +138,7 @@ async def regenerate_content(req: RegenerateRequest, db: Session = Depends(get_d
             model=ai_service.model if hasattr(ai_service, 'model') else 'unknown'
         )
 
-    except OllamaServiceError as err:
+    except GroqServiceError as err:
         raise HTTPException(status_code=err.status_code, detail=err.message)
     except Exception as err:
         raise HTTPException(
@@ -189,7 +189,7 @@ async def improve_content(req: TransformRequest, db: Session = Depends(get_db)):
             model=ai_service.model if hasattr(ai_service, 'model') else 'unknown'
         )
 
-    except OllamaServiceError as err:
+    except GroqServiceError as err:
         raise HTTPException(status_code=err.status_code, detail=err.message)
     except Exception as err:
         raise HTTPException(
@@ -239,7 +239,7 @@ async def shorten_content(req: TransformRequest, db: Session = Depends(get_db)):
             model=ai_service.model if hasattr(ai_service, 'model') else 'unknown'
         )
 
-    except OllamaServiceError as err:
+    except GroqServiceError as err:
         raise HTTPException(status_code=err.status_code, detail=err.message)
     except Exception as err:
         raise HTTPException(
@@ -289,7 +289,7 @@ async def expand_content(req: TransformRequest, db: Session = Depends(get_db)):
             model=ai_service.model if hasattr(ai_service, 'model') else 'unknown'
         )
 
-    except OllamaServiceError as err:
+    except GroqServiceError as err:
         raise HTTPException(status_code=err.status_code, detail=err.message)
     except Exception as err:
         raise HTTPException(

@@ -42,13 +42,13 @@
         </nav>
 
         <div class="nav-status">
-            <div id="ollama-status-pill" class="status-pill checking">
+            <div id="groq-status-pill" class="status-pill checking">
                 <span class="status-dot"></span>
-                <span id="ollama-status-text">Checking Ollama...</span>
+                <span id="groq-status-text">Checking groq...</span>
             </div>
             <div class="model-badge" id="model-badge">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                <span id="model-name">llama3.2</span>
+                <span id="model-name">openai/gpt-oss-120b</span>
             </div>
         </div>
     </header>
@@ -59,10 +59,10 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             <div class="alert-text">
                 <strong>AI Service Unavailable:</strong>
-                <span>Ollama is not running. Start Ollama with <code class="code-tag">ollama run llama3.2</code> and refresh this page.</span>
+                <span>Groq API is not configured. Please check your GROQ_API_KEY.</span>
             </div>
         </div>
-        <button id="retry-ollama-btn" class="btn btn-sm btn-outline">Retry Connection</button>
+        <button id="retry-groq-btn" class="btn btn-sm btn-outline">Retry Connection</button>
     </div>
 
     <!-- Main Content Views Container -->
@@ -92,17 +92,17 @@
             <div class="dashboard-grid">
                 <div class="card status-card">
                     <div class="card-header">
-                        <h3>Ollama Runtime Diagnostics</h3>
+                        <h3>groq Runtime Diagnostics</h3>
                         <span id="card-status-indicator" class="badge">Checking</span>
                     </div>
                     <div class="card-body">
                         <div class="diag-row">
                             <span class="diag-label">Runtime Engine:</span>
-                            <span class="diag-value">Ollama (Local Daemon)</span>
+                            <span class="diag-value">groq (Local Daemon)</span>
                         </div>
                         <div class="diag-row">
                             <span class="diag-label">Configured Model:</span>
-                            <span class="diag-value font-mono" id="diag-model">llama3.2</span>
+                            <span class="diag-value font-mono" id="diag-model">openai/gpt-oss-120b</span>
                         </div>
                         <div class="diag-row">
                             <span class="diag-label">Endpoint URL:</span>
@@ -329,7 +329,7 @@
                         <ul class="tech-stack-list">
                             <li><strong>Frontend:</strong> HTML5, CSS3, Vanilla JavaScript (No React, No Streamlit)</li>
                             <li><strong>Backend:</strong> Python, FastAPI, Uvicorn, Pydantic v2</li>
-                            <li><strong>AI Runtime:</strong> Ollama with <code>llama3.2</code> (3.2B parameters)</li>
+                            <li><strong>AI Runtime:</strong> groq with <code>openai/gpt-oss-120b</code> (3.2B parameters)</li>
                             <li><strong>Database:</strong> SQLite with SQLAlchemy ORM</li>
                             <li><strong>Deployment:</strong> Render-compatible (modular provider architecture)</li>
                         </ul>

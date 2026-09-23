@@ -1,7 +1,7 @@
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
-from app.schemas import HealthResponse, OllamaStatusResponse
+from app.schemas import HealthResponse, GroqStatusResponse
 from app.services.ai_provider import get_ai_service
 
 router = APIRouter(prefix="/api", tags=["Health & Status"])
@@ -21,22 +21,21 @@ async def get_health():
     }
 
 
-@router.get("/ollama-status", response_model=OllamaStatusResponse)
-async def get_ollama_status():
+@router.get("/groq-status", response_model=GroqStatusResponse)
+async def get_groq_status():
     """
     Checks if the configured AI service is reachable.
     Returns a structured status object. Never throws 500 —
-    a disconnected Ollama is a normal state on cloud deployments.
+    a disconnected Groq is a normal state on cloud deployments.
     """
     try:
         ai_service = get_ai_service()
         status_info = await ai_service.check_status()
     except Exception as exc:
         status_info = {
-            "connected": False,
+            "provider": "Groq",
+            "configured": False,
             "model": "unavailable",
-            "available_models": [],
-            "base_url": "N/A",
             "message": f"AI service not reachable: {str(exc)}"
         }
     return status_info

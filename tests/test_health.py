@@ -15,12 +15,12 @@ def test_health_endpoint():
     assert "timestamp" in data
 
 
-def test_ollama_status_endpoint():
-    """Verify ollama status check endpoint responds with diagnostic structure."""
-    response = client.get("/api/ollama-status")
+def test_groq_status_endpoint():
+    """Verify groq status check endpoint responds with diagnostic structure."""
+    response = client.get("/api/groq-status")
     assert response.status_code == 200
     data = response.json()
-    assert "connected" in data
+    assert "configured" in data
     assert "model" in data
     assert "message" in data
 
