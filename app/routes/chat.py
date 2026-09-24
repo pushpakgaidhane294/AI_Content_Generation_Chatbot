@@ -2,7 +2,7 @@ from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import ChatHistory
+from app.models import ChatSession, ChatMessage
 from app.schemas import (
     GenerateRequest,
     RegenerateRequest,
@@ -16,6 +16,8 @@ from app.services.ai_provider import get_ai_service
 router = APIRouter(prefix="/api", tags=["Content Generation"])
 
 
+
+
 def _save_generation(
     db: Session,
     session_id: str,
@@ -25,24 +27,52 @@ def _save_generation(
     tone: str,
     audience: str,
     length: str
-) -> ChatHistory:
-    """Helper function to record generation into SQLite database."""
-    record = ChatHistory(
+):
+    session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+    if not session:
+        title = user_prompt[:30] + ("..." if len(user_prompt) > 30 else "")
+        session = ChatSession(id=session_id, title=title)
+        db.add(session)
+        db.flush()
+
+    user_msg = ChatMessage(
         session_id=session_id,
+        role="user",
+        content=user_prompt
+    )
+    db.add(user_msg)
+    db.flush()
+    
+    asst_msg = ChatMessage(
+        session_id=session_id,
+        role="assistant",
+        content=generated_response,
         content_type=content_type,
-        user_prompt=user_prompt,
-        generated_response=generated_response,
         tone=tone,
         audience=audience,
-        length=length,
-        created_at=datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
+        length=length
     )
-    db.add(record)
+    db.add(asst_msg)
+    
+    from datetime import datetime, timezone, timedelta
+    session.updated_at = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
     db.commit()
-    db.refresh(record)
-    return record
-
-
+    db.refresh(asst_msg)
+    db.refresh(user_msg)
+    
+    class DummyRecord:
+        def __init__(self):
+            self.id = asst_msg.id
+            self.user_message_id = user_msg.id
+            self.session_id = session_id
+            self.content_type = content_type
+            self.user_prompt = user_prompt
+            self.generated_response = generated_response
+            self.tone = tone
+            self.audience = audience
+            self.length = length
+            self.created_at = asst_msg.created_at
+    return DummyRecord()
 @router.post("/generate", response_model=GenerateResponse)
 async def generate_content(req: GenerateRequest, db: Session = Depends(get_db)):
     """
@@ -59,7 +89,20 @@ async def generate_content(req: GenerateRequest, db: Session = Depends(get_db)):
         )
 
         ai_service = get_ai_service()
-        generated_text = await ai_service.generate(engineered_prompt)
+        
+        history = []
+        if req.session_id and req.session_id != "default-session":
+            # Fetch only the last 4 messages to save tokens
+            past_msgs = db.query(ChatMessage).filter(ChatMessage.session_id == req.session_id).order_by(ChatMessage.id.desc()).limit(4).all()
+            past_msgs.reverse()
+            for m in past_msgs:
+                content = m.content
+                # Truncate past messages if they are too long (saving TPM limits)
+                if len(content) > 1500:
+                    content = content[:1500] + "... [truncated]"
+                history.append({"role": m.role, "content": content})
+                
+        generated_text = await ai_service.generate(engineered_prompt, history=history)
 
         record = _save_generation(
             db=db,
@@ -74,6 +117,7 @@ async def generate_content(req: GenerateRequest, db: Session = Depends(get_db)):
 
         return GenerateResponse(
             id=record.id,
+            user_message_id=record.user_message_id,
             session_id=record.session_id,
             content_type=record.content_type,
             user_prompt=record.user_prompt,
@@ -112,7 +156,20 @@ async def regenerate_content(req: RegenerateRequest, db: Session = Depends(get_d
         )
 
         ai_service = get_ai_service()
-        generated_text = await ai_service.generate(engineered_prompt)
+        
+        history = []
+        if req.session_id and req.session_id != "default-session":
+            # Fetch only the last 4 messages to save tokens
+            past_msgs = db.query(ChatMessage).filter(ChatMessage.session_id == req.session_id).order_by(ChatMessage.id.desc()).limit(4).all()
+            past_msgs.reverse()
+            for m in past_msgs:
+                content = m.content
+                # Truncate past messages if they are too long (saving TPM limits)
+                if len(content) > 1500:
+                    content = content[:1500] + "... [truncated]"
+                history.append({"role": m.role, "content": content})
+                
+        generated_text = await ai_service.generate(engineered_prompt, history=history)
 
         record = _save_generation(
             db=db,
@@ -127,6 +184,7 @@ async def regenerate_content(req: RegenerateRequest, db: Session = Depends(get_d
 
         return GenerateResponse(
             id=record.id,
+            user_message_id=record.user_message_id,
             session_id=record.session_id,
             content_type=record.content_type,
             user_prompt=record.user_prompt,
@@ -163,7 +221,20 @@ async def improve_content(req: TransformRequest, db: Session = Depends(get_db)):
         )
 
         ai_service = get_ai_service()
-        generated_text = await ai_service.generate(engineered_prompt)
+        
+        history = []
+        if req.session_id and req.session_id != "default-session":
+            # Fetch only the last 4 messages to save tokens
+            past_msgs = db.query(ChatMessage).filter(ChatMessage.session_id == req.session_id).order_by(ChatMessage.id.desc()).limit(4).all()
+            past_msgs.reverse()
+            for m in past_msgs:
+                content = m.content
+                # Truncate past messages if they are too long (saving TPM limits)
+                if len(content) > 1500:
+                    content = content[:1500] + "... [truncated]"
+                history.append({"role": m.role, "content": content})
+                
+        generated_text = await ai_service.generate(engineered_prompt, history=history)
 
         record = _save_generation(
             db=db,
@@ -178,6 +249,7 @@ async def improve_content(req: TransformRequest, db: Session = Depends(get_db)):
 
         return GenerateResponse(
             id=record.id,
+            user_message_id=record.user_message_id,
             session_id=record.session_id,
             content_type=record.content_type,
             user_prompt=record.user_prompt,
@@ -213,7 +285,20 @@ async def shorten_content(req: TransformRequest, db: Session = Depends(get_db)):
         )
 
         ai_service = get_ai_service()
-        generated_text = await ai_service.generate(engineered_prompt)
+        
+        history = []
+        if req.session_id and req.session_id != "default-session":
+            # Fetch only the last 4 messages to save tokens
+            past_msgs = db.query(ChatMessage).filter(ChatMessage.session_id == req.session_id).order_by(ChatMessage.id.desc()).limit(4).all()
+            past_msgs.reverse()
+            for m in past_msgs:
+                content = m.content
+                # Truncate past messages if they are too long (saving TPM limits)
+                if len(content) > 1500:
+                    content = content[:1500] + "... [truncated]"
+                history.append({"role": m.role, "content": content})
+                
+        generated_text = await ai_service.generate(engineered_prompt, history=history)
 
         record = _save_generation(
             db=db,
@@ -228,6 +313,7 @@ async def shorten_content(req: TransformRequest, db: Session = Depends(get_db)):
 
         return GenerateResponse(
             id=record.id,
+            user_message_id=record.user_message_id,
             session_id=record.session_id,
             content_type=record.content_type,
             user_prompt=record.user_prompt,
@@ -263,7 +349,20 @@ async def expand_content(req: TransformRequest, db: Session = Depends(get_db)):
         )
 
         ai_service = get_ai_service()
-        generated_text = await ai_service.generate(engineered_prompt)
+        
+        history = []
+        if req.session_id and req.session_id != "default-session":
+            # Fetch only the last 4 messages to save tokens
+            past_msgs = db.query(ChatMessage).filter(ChatMessage.session_id == req.session_id).order_by(ChatMessage.id.desc()).limit(4).all()
+            past_msgs.reverse()
+            for m in past_msgs:
+                content = m.content
+                # Truncate past messages if they are too long (saving TPM limits)
+                if len(content) > 1500:
+                    content = content[:1500] + "... [truncated]"
+                history.append({"role": m.role, "content": content})
+                
+        generated_text = await ai_service.generate(engineered_prompt, history=history)
 
         record = _save_generation(
             db=db,
@@ -278,6 +377,7 @@ async def expand_content(req: TransformRequest, db: Session = Depends(get_db)):
 
         return GenerateResponse(
             id=record.id,
+            user_message_id=record.user_message_id,
             session_id=record.session_id,
             content_type=record.content_type,
             user_prompt=record.user_prompt,

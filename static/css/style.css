@@ -426,7 +426,7 @@ h1, h2, h3, h4 {
 .chat-layout {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 140px);
+    height: 100%;
     background-color: var(--bg-secondary);
     border-radius: var(--radius-lg);
     border: 1px solid var(--border-color);
@@ -580,11 +580,12 @@ h1, h2, h3, h4 {
     padding: 1.1rem 1.4rem;
     border-radius: var(--radius-md);
     font-size: 0.95rem;
-    white-space: pre-wrap;
+    /* white-space: pre-wrap; removed */
     word-break: break-word;
 }
 
 .chat-message.user .message-body {
+    white-space: pre-wrap;
     background: linear-gradient(135deg, #1e3a8a, #2563eb);
     color: #fff;
     border-bottom-right-radius: 2px;
@@ -953,7 +954,7 @@ h1, h2, h3, h4 {
     border-radius: var(--radius-sm);
     font-size: 0.9rem;
     border: 1px solid var(--border-color);
-    white-space: pre-wrap;
+    /* white-space: pre-wrap; removed */
     line-height: 1.6;
     max-height: 350px;
     overflow-y: auto;
@@ -1139,4 +1140,77 @@ h1, h2, h3, h4 {
     .about-card-grid { grid-template-columns: 1fr; }
     .top-nav { flex-direction: column; gap: 1rem; padding: 1rem; }
     .chat-layout { height: auto; min-height: 550px; }
+}
+
+/* Markdown Styles for AI Responses */
+.chat-message.ai .message-body p {
+    margin-bottom: 1rem;
+}
+.chat-message.ai .message-body p:last-child {
+    margin-bottom: 0;
+}
+.chat-message.ai .message-body h1,
+.chat-message.ai .message-body h2,
+.chat-message.ai .message-body h3,
+.chat-message.ai .message-body h4 {
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--text-primary);
+}
+.chat-message.ai .message-body h1 { font-size: 1.5rem; }
+.chat-message.ai .message-body h2 { font-size: 1.3rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.3rem; }
+.chat-message.ai .message-body h3 { font-size: 1.1rem; }
+
+.chat-message.ai .message-body ul,
+.chat-message.ai .message-body ol {
+    margin-bottom: 1rem;
+    padding-left: 2rem;
+}
+.chat-message.ai .message-body li {
+    margin-bottom: 0.25rem;
+}
+
+.chat-message.ai .message-body table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+}
+.chat-message.ai .message-body th,
+.chat-message.ai .message-body td {
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    text-align: left;
+}
+.chat-message.ai .message-body th {
+    background-color: var(--bg-body);
+    font-weight: 600;
+}
+.chat-message.ai .message-body blockquote {
+    border-left: 4px solid var(--primary);
+    padding-left: 1rem;
+    margin-left: 0;
+    color: var(--text-muted);
+    background: rgba(0,0,0,0.2);
+    padding: 0.5rem 1rem;
+    border-radius: 0 4px 4px 0;
+}
+.chat-message.ai .message-body code {
+    background: var(--bg-body);
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+.chat-message.ai .message-body pre {
+    background: var(--bg-body);
+    padding: 1rem;
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+    margin-bottom: 1rem;
+}
+.chat-message.ai .message-body pre code {
+    background: none;
+    padding: 0;
 }

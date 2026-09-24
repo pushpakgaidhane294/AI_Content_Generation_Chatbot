@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional
 from groq import AsyncGroq, APIError, AuthenticationError
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 class GroqServiceError(Exception):
     """Custom application-level exception for Groq errors with user-friendly messages."""
@@ -48,7 +48,7 @@ class GroqService:
             "message": "Connected and model ready."
         }
 
-    async def generate(self, prompt: str, system_override: Optional[str] = None) -> str:
+    async def generate(self, prompt: str, system_override: Optional[str] = None, history: Optional[list] = None) -> str:
         """
         Sends an engineered prompt to Groq and returns the generated content.
         Raises GroqServiceError with helpful user-facing messages upon failure.
@@ -60,6 +60,8 @@ class GroqService:
         if system_override:
             messages.append({"role": "system", "content": system_override})
         
+        if history:
+            messages.extend(history)
         messages.append({"role": "user", "content": prompt})
 
         try:

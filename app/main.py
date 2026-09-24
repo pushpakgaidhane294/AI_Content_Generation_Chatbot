@@ -12,7 +12,7 @@ from app.routes.health import router as health_router
 from app.routes.chat import router as chat_router
 from app.routes.history import router as history_router
 
-load_dotenv()
+load_dotenv(override=True)
 
 # Initialize tables immediately so test clients and workers have database ready
 init_db()

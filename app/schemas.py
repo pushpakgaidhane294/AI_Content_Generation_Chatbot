@@ -109,6 +109,7 @@ class TransformRequest(BaseModel):
 
 class GenerateResponse(BaseModel):
     id: Optional[int] = None
+    user_message_id: Optional[int] = None
     session_id: str
     content_type: str
     user_prompt: str
@@ -148,3 +149,28 @@ class HealthResponse(BaseModel):
     status: str
     version: str
     timestamp: str
+
+class ChatMessageResponse(BaseModel):
+    id: int
+    session_id: str
+    role: str
+    content: str
+    content_type: Optional[str] = None
+    tone: Optional[str] = None
+    audience: Optional[str] = None
+    length: Optional[str] = None
+    created_at: str
+
+class ChatSessionResponse(BaseModel):
+    id: str
+    title: str
+    created_at: str
+    updated_at: str
+    messages: Optional[List[ChatMessageResponse]] = None
+
+class SessionListResponse(BaseModel):
+    total: int
+    items: List[ChatSessionResponse]
+
+class EditMessageRequest(GenerateRequest):
+    message_id: int

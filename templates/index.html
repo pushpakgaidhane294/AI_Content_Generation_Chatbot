@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Content Generation Chatbot | Generative AI Project</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=3">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
@@ -31,7 +31,7 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                 Chatbot
             </button>
-            <button class="nav-btn" data-tab="history">
+            <button class="nav-btn" data-tab="history" style="display: none;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 History <span id="history-count-badge" class="count-pill">0</span>
             </button>
@@ -179,7 +179,20 @@
 
         <!-- VIEW 2: CHATBOT -->
         <section id="view-chat" class="view-panel">
-            <div class="chat-layout">
+            <div class="chat-app-wrapper" style="display: flex; height: calc(100vh - 140px); gap: 1rem;">
+                <!-- Chat Sessions Sidebar -->
+                <div class="chat-sidebar" style="width: 280px; display: flex; flex-direction: column; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px solid var(--border-color); overflow: hidden;">
+                    <div style="padding: 1rem; border-bottom: 1px solid var(--border-color); display: flex; gap: 0.5rem;">
+                        <button class="btn btn-primary" style="flex: 1; display: flex; justify-content: center; align-items: center; gap: 0.5rem;" onclick="startNewChat()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            New Chat
+                        </button>
+                    </div>
+                    <h4 style="margin: 0.5rem 1rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted);">History</h4><div id="sidebar-sessions-list" style="flex: 1; overflow-y: auto; padding: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                        <!-- Session items injected here -->
+                    </div>
+                </div>
+                <div class="chat-layout" style="flex: 1;">
                 <!-- Chat Controls Panel -->
                 <div class="chat-controls-bar">
                     <div class="control-group">
@@ -277,10 +290,11 @@
                     </form>
                 </div>
             </div>
+            </div>
         </section>
 
         <!-- VIEW 3: HISTORY -->
-        <section id="view-history" class="view-panel">
+        <section id="view-history" class="view-panel" style="display: none;">
             <div class="history-layout">
                 <div class="history-header">
                     <div>
@@ -495,6 +509,7 @@ Output Format:<br>
     <div id="toast-container" class="toast-container"></div>
 
     <!-- Scripts -->
-    <script src="/static/js/app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="/static/js/app.js?v=9"></script>
 </body>
 </html>

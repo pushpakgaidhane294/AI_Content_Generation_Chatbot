@@ -1,23 +1,22 @@
+
 /**
- * AI Content Generation Chatbot - Frontend Application Logic
- * Vanilla JavaScript (No external frameworks)
+ * AI Content Generation Chatbot - Frontend Application Logic (Session-based)
  */
 
-// Application State
-const messageDataStore = {};`nconst state = {
+const messageDataStore = {};
+const state = {
     activeTab: 'dashboard',
-    sessionId: 'session-' + Math.random().toString(36).substring(2, 9),
+    sessionId: 'session-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9),
     isGenerating: false,
-    historyCache: [],
-    selectedHistoryItem: null,
+    sessionsCache: [],
+    currentSessionMessages: [],
     groqStatus: {
-        connected: false,
+        configured: false,
         model: 'openai/gpt-oss-120b',
-        message: ''
+        message: 'Checking...'
     }
 };
 
-// DOM Elements Cache
 const elements = {
     tabs: document.querySelectorAll('.nav-btn'),
     panels: {
@@ -31,73 +30,46 @@ const elements = {
     modelName: document.getElementById('model-name'),
     offlineBanner: document.getElementById('offline-banner'),
     retrygroqBtn: document.getElementById('retry-groq-btn'),
-    
-    // Dashboard Diagnostics
     diagModel: document.getElementById('diag-model'),
     diagUrl: document.getElementById('diag-url'),
     diagMsg: document.getElementById('diag-msg'),
-    cardStatusIndicator: document.getElementById('card-status-indicator'),
-    
-    // Chat Controls
-    contentType: document.getElementById('control-content-type'),
-    tone: document.getElementById('control-tone'),
-    audience: document.getElementById('control-audience'),
-    length: document.getElementById('control-length'),
     chatForm: document.getElementById('chat-form'),
     promptInput: document.getElementById('user-prompt-input'),
     generateBtn: document.getElementById('generate-btn'),
     btnText: document.getElementById('btn-text'),
-    btnIcon: document.getElementById('btn-icon'),
     btnSpinner: document.getElementById('btn-spinner'),
     messagesWindow: document.getElementById('chat-messages-window'),
     emptyState: document.getElementById('chat-empty-state'),
     clearChatBtn: document.getElementById('clear-chat-btn'),
-    
-    // History
-    historyContainer: document.getElementById('history-container'),
-    historyCountBadge: document.getElementById('history-count-badge'),
-    
-    // Modal
-    historyModal: document.getElementById('history-modal'),
-    modalContentType: document.getElementById('modal-content-type'),
-    modalTimestamp: document.getElementById('modal-timestamp'),
-    modalTone: document.getElementById('modal-tone'),
-    modalAudience: document.getElementById('modal-audience'),
-    modalLength: document.getElementById('modal-length'),
-    modalPrompt: document.getElementById('modal-prompt'),
-    modalResponse: document.getElementById('modal-response'),
-    
-    // Toast
-    toastContainer: document.getElementById('toast-container')
+    toastContainer: document.getElementById('toast-container'),
+    contentType: document.getElementById('control-content-type'),
+    tone: document.getElementById('control-tone'),
+    audience: document.getElementById('control-audience'),
+    length: document.getElementById('control-length'),
+    sidebarSessionsList: document.getElementById('sidebar-sessions-list')
 };
 
-// ============================================================================
-// Initialization & Lifecycle
-// ============================================================================
 document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
     initKeyboardShortcuts();
     checkgroqStatus();
-    loadHistory();
-
-    // Periodic check for groq status every 30 seconds
+    loadSessions();
     setInterval(checkgroqStatus, 30000);
-
     if (elements.retrygroqBtn) {
         elements.retrygroqBtn.addEventListener('click', () => {
-            showToast('Rechecking groq daemon...', 'info');
+            showToast('Rechecking Groq API...', 'info');
             checkgroqStatus();
         });
     }
-
     if (elements.clearChatBtn) {
-        elements.clearChatBtn.addEventListener('click', clearChatScreen);
+        elements.clearChatBtn.addEventListener('click', () => {
+            if (confirm('Clear current messages from screen?')) {
+                startNewChat();
+            }
+        });
     }
 });
 
-// ============================================================================
-// Navigation Management
-// ============================================================================
 function initNavigation() {
     elements.tabs.forEach(button => {
         button.addEventListener('click', () => {
@@ -109,31 +81,22 @@ function initNavigation() {
 
 function switchTab(tabName) {
     if (!elements.panels[tabName]) return;
-
     state.activeTab = tabName;
-
-    // Update button states
     elements.tabs.forEach(btn => {
-        btn.classList.toggle('active', btn.getAttribute('data-tab') === tabName);
+        if (btn.getAttribute('data-tab') === tabName) btn.classList.add('active');
+        else btn.classList.remove('active');
     });
-
-    // Update panel displays
     Object.keys(elements.panels).forEach(key => {
-        elements.panels[key].classList.toggle('active', key === tabName);
+        if (key === tabName) {
+            elements.panels[key].classList.add('active');
+            elements.panels[key].style.display = 'block';
+        } else {
+            elements.panels[key].classList.remove('active');
+            elements.panels[key].style.display = 'none';
+        }
     });
-
-    // Specific tab activations
-    if (tabName === 'history') {
-        loadHistory();
-    } else if (tabName === 'dashboard') {
-        checkgroqStatus();
-    }
 }
 
-// ============================================================================
-// ============================================================================
-// Groq Status Check
-// ============================================================================
 async function checkgroqStatus() {
     try {
         const response = await fetch('/api/groq-status');
@@ -154,93 +117,258 @@ async function checkgroqStatus() {
 
 function updategroqUI(data) {
     if (!elements.groqPill) return;
-
     const isReady = data.configured;
     elements.groqPill.className = 'status-pill ' + (isReady ? 'connected' : 'disconnected');
     elements.groqText.textContent = isReady ? 'Configured' : 'Not Configured';
-    elements.modelName.textContent = data.model || 'openai/gpt-oss-120b';
-
-    if (isReady) {
-        elements.offlineBanner.classList.add('hidden');
-        if (elements.cardStatusIndicator) {
-            elements.cardStatusIndicator.className = 'badge badge-green';
-            elements.cardStatusIndicator.textContent = 'Active & Ready';
-        }
-    } else {
-        elements.offlineBanner.classList.remove('hidden');
-        if (elements.cardStatusIndicator) {
-            elements.cardStatusIndicator.className = 'badge badge-red';
-            elements.cardStatusIndicator.textContent = 'API Key Missing';
-        }
-    }
-
+    if(elements.modelName) elements.modelName.textContent = data.model || 'openai/gpt-oss-120b';
+    if (isReady && elements.offlineBanner) elements.offlineBanner.classList.add('hidden');
+    else if(elements.offlineBanner) elements.offlineBanner.classList.remove('hidden');
     if (elements.diagModel) elements.diagModel.textContent = data.model || 'openai/gpt-oss-120b';
     if (elements.diagUrl) elements.diagUrl.textContent = 'https://api.groq.com/openai/v1';
     if (elements.diagMsg) elements.diagMsg.textContent = data.message;
 }
 
-// ============================================================================
-// Chatbot Interactions & Input
-// ============================================================================
 function initKeyboardShortcuts() {
-    if (!elements.promptInput) return;
-
-    elements.promptInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            if (!state.isGenerating && elements.promptInput.value.trim()) {
-                elements.chatForm.dispatchEvent(new Event('submit', { cancelable: true }));
+    if (elements.promptInput) {
+        elements.promptInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleGenerateSubmit(e);
             }
-        }
-    });
+        });
+    }
 }
 
-function setGenerating(generating) {
-    state.isGenerating = generating;
-    elements.generateBtn.disabled = generating;
-
-    if (generating) {
-        elements.btnText.textContent = 'Generating...';
-        elements.btnIcon.classList.add('hidden');
-        elements.btnSpinner.classList.remove('hidden');
+function setGenerating(isGenerating) {
+    state.isGenerating = isGenerating;
+    if (elements.generateBtn) elements.generateBtn.disabled = isGenerating;
+    if (elements.promptInput) elements.promptInput.disabled = isGenerating;
+    if (isGenerating) {
+        if(elements.btnText) elements.btnText.textContent = 'Generating...';
+        if(elements.btnSpinner) elements.btnSpinner.classList.remove('hidden');
     } else {
-        elements.btnText.textContent = 'Generate';
-        elements.btnIcon.classList.remove('hidden');
-        elements.btnSpinner.classList.add('hidden');
+        if(elements.btnText) elements.btnText.textContent = 'Generate';
+        if(elements.btnSpinner) elements.btnSpinner.classList.add('hidden');
+        if(elements.promptInput) elements.promptInput.focus();
     }
+}
+
+function startNewChat() {
+    state.sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+    state.currentSessionMessages = [];
+    clearChatWindow();
+    showToast('Started a new chat session', 'info');
+}
+
+function clearChatWindow() {
+    const bubbles = elements.messagesWindow.querySelectorAll('.chat-message');
+    bubbles.forEach(b => b.remove());
+    if (elements.emptyState) elements.emptyState.style.display = 'block';
+}
+
+function scrollToBottom() {
+    if (elements.messagesWindow) {
+        elements.messagesWindow.scrollTo({
+            top: elements.messagesWindow.scrollHeight,
+            behavior: 'smooth'
+        });
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+
+function formatTime(isoString) {
+    if (!isoString) return '';
+    try {
+        const d = new Date(isoString);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (e) { return isoString; }
+}
+
+function formatCurrentTime() {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function appendLoadingBubble(id) {
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'chat-message ai loading-bubble';
+    loadingDiv.id = id;
+    loadingDiv.innerHTML = `
+        <div class="message-header">
+            <span class="message-sender">Assistant</span>
+            <span>&bull; thinking...</span>
+        </div>
+        <div class="message-body">
+            <div class="typing-indicator"><span></span><span></span><span></span></div>
+        </div>
+    `;
+    elements.messagesWindow.appendChild(loadingDiv);
+    scrollToBottom();
+}
+
+function removeLoadingBubble(id) {
+    const bubble = document.getElementById(id);
+    if (bubble) bubble.remove();
+}
+
+function appendUserMessage(text, messageId) {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'chat-message user';
+    msgDiv.id = 'user-msg-' + messageId;
+    msgDiv.setAttribute('data-original-text', text);
+    msgDiv.innerHTML = `
+        <div class="message-header">
+            <span class="message-sender">You</span>
+            <span>&bull; ${formatCurrentTime()}</span>
+        </div>
+        <div class="message-body" id="user-msg-body-${messageId}">${escapeHtml(text)}</div>
+        <div class="message-actions" style="border:none; margin-top: 5px; justify-content: flex-end;">
+            <button class="action-btn edit-btn" onclick="openEditMessage(${messageId})" >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> Edit
+            </button>
+        </div>
+    `;
+    elements.messagesWindow.appendChild(msgDiv);
+    scrollToBottom();
+}
+
+window.openEditMessage = function(messageId) {
+    const bodyEl = document.getElementById('user-msg-body-' + messageId);
+    const currentText = bodyEl.innerText;
+    bodyEl.innerHTML = `
+        <textarea id="edit-textarea-${messageId}" style="width:100%; min-height:80px; padding:8px; color: black; border-radius: 4px;">${escapeHtml(currentText)}</textarea>
+        <div style="display:flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+            <button onclick="cancelEdit(${messageId})" style="padding: 4px 8px; background: #ccc; border:none; border-radius:3px; color: black; cursor:pointer;">Cancel</button>
+            <button onclick="saveAndRegenerate(${messageId})" style="padding: 4px 8px; background: #2563eb; border:none; border-radius:3px; color: white; cursor:pointer;">Save & Regenerate</button>
+        </div>
+    `;
+}
+
+window.cancelEdit = function(messageId) {
+    const msgDiv = document.getElementById('user-msg-' + messageId);
+    const originalText = msgDiv.getAttribute('data-original-text');
+    const bodyEl = document.getElementById('user-msg-body-' + messageId);
+    bodyEl.innerText = originalText;
+}
+
+window.saveAndRegenerate = async function(messageId) {
+    const textarea = document.getElementById('edit-textarea-' + messageId);
+    if(!textarea) return;
+    const newText = textarea.value.trim();
+    if(!newText) return;
+    
+    // Remove subsequent UI messages
+    const msgDiv = document.getElementById('user-msg-' + messageId);
+    while (msgDiv.nextElementSibling) {
+        msgDiv.nextElementSibling.remove();
+    }
+    
+    // Put edited text
+    msgDiv.setAttribute('data-original-text', newText);
+    cancelEdit(messageId);
+
+    
+    const loadingId = 'loading-' + Date.now();
+    appendLoadingBubble(loadingId);
+    setGenerating(true);
+    
+    const payload = {
+        message_id: messageId,
+        new_prompt: newText,
+        content_type: elements.contentType.value,
+        tone: elements.tone.value,
+        audience: elements.audience.value,
+        length: elements.length.value
+    };
+    
+    try {
+        const res = await fetch(`/api/sessions/${state.sessionId}/edit_prompt`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        removeLoadingBubble(loadingId);
+        
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Edit generation failed.');
+        }
+        
+        const data = await res.json();
+        // data has user_message and assistant_message
+        appendAiMessage(data.assistant_message);
+        showToast('Message edited & regenerated!', 'success');
+        loadSessions(); // refresh history
+    } catch (err) {
+        removeLoadingBubble(loadingId);
+        showToast(err.message, 'error');
+    } finally {
+        setGenerating(false);
+    }
+}
+
+
+function appendAiMessage(data) {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'chat-message ai';
+    const msgId = 'ai-msg-' + (data.id || Date.now());
+    msgDiv.id = msgId;
+    messageDataStore[msgId] = data; // Store full data
+
+    msgDiv.innerHTML = `
+        <div class="message-header">
+            <span class="message-sender">Assistant</span>
+            <span>&bull; ${formatTime(data.created_at) || formatCurrentTime()}</span>
+        </div>
+        <div class="message-meta" style="margin-bottom:8px;">
+            <span class="badge badge-blue">${data.content_type || 'General'}</span>
+            <span class="pill">${data.tone || 'Professional'}</span>
+            <span class="pill">${data.audience || 'General'}</span>
+            <span class="pill">${data.length || 'Medium'}</span>
+        </div>
+        <div class="message-body" id="body-${msgId}">
+            ${marked.parse(data.content || data.generated_response || '')}
+        </div>
+        <div class="message-actions">
+            <button class="action-btn" onclick="executeAction('${msgId}', 'regenerate')">Regenerate</button>
+            <button class="action-btn" onclick="executeAction('${msgId}', 'improve')">Improve</button>
+            <button class="action-btn" onclick="executeAction('${msgId}', 'shorten')">Shorten</button>
+            <button class="action-btn" onclick="executeAction('${msgId}', 'expand')">Expand</button>
+            <button class="action-btn" onclick="copyContent('${msgId}')">Copy</button>
+            <button class="action-btn" onclick="downloadContent('${msgId}')">Download</button>
+        </div>
+    `;
+    elements.messagesWindow.appendChild(msgDiv);
+    scrollToBottom();
 }
 
 async function handleGenerateSubmit(e) {
     if (e) e.preventDefault();
-
     const promptText = elements.promptInput.value.trim();
     if (!promptText) {
         showToast('Please enter a prompt before generating.', 'error');
         return false;
     }
-
     if (state.isGenerating) return false;
 
-    // Check if groq is connected; warn user but let them try if they wish
-    if (!state.groqStatus.connected) {
-        showToast('groq is currently not running. Please start groq.', 'error');
+    if (!state.groqStatus.configured) {
+        showToast('Groq API may not be configured properly.', 'error');
     }
 
-    // Hide empty state
-    if (elements.emptyState) {
-        elements.emptyState.style.display = 'none';
-    }
+    if (elements.emptyState) elements.emptyState.style.display = 'none';
 
-    // Append User Message Bubble
-    appendUserMessage(promptText);
-
-    // Clear input
+    // Temporary optimistic user message, we will update its ID once response returns
+    const tempId = Date.now();
+    appendUserMessage(promptText, tempId);
     elements.promptInput.value = '';
 
-    // Append AI Loading Skeleton
     const loadingId = 'loading-' + Date.now();
     appendLoadingBubble(loadingId);
-
     setGenerating(true);
 
     const payload = {
@@ -259,494 +387,238 @@ async function handleGenerateSubmit(e) {
             body: JSON.stringify(payload)
         });
 
-        const data = await response.json();
-
-        // Remove loading bubble
         removeLoadingBubble(loadingId);
 
         if (!response.ok) {
-            throw new Error(data.detail || 'Generation request failed.');
+            const errData = await response.json();
+            throw new Error(errData.detail || 'Generation failed.');
         }
 
-        // Render AI Message Bubble
+        const data = await response.json();
+        
+        // Update user message ID to real ID
+        const tempMsgDiv = document.getElementById('user-msg-' + tempId);
+        if(tempMsgDiv && data.user_message_id) {
+            tempMsgDiv.id = 'user-msg-' + data.user_message_id;
+            const btn = tempMsgDiv.querySelector('.edit-btn');
+            if(btn) btn.setAttribute('onclick', `openEditMessage(${data.user_message_id})`);
+            const body = tempMsgDiv.querySelector('.message-body');
+            if(body) body.id = 'user-msg-body-' + data.user_message_id;
+        }
+
         appendAiMessage(data);
-
-        // Refresh history counter
-        loadHistory();
         showToast('Content successfully generated!', 'success');
-
+        
+        loadSessions(); // refresh history to show new session if it was just created
+        
     } catch (err) {
         removeLoadingBubble(loadingId);
-        appendErrorMessage(err.message || 'Error communicating with AI service.');
         showToast(err.message || 'Generation failed.', 'error');
     } finally {
         setGenerating(false);
     }
-
-    return false;
 }
 
-// ============================================================================
-// Response Action Triggers: Regenerate, Improve, Shorten, Expand
-// ============================================================================
-async function executeResponseAction(actionType, contextData) {
+window.executeAction = async function(msgId, actionType) {
     if (state.isGenerating) return;
+    const msgData = messageDataStore[msgId];
+    if (!msgData) {
+        showToast('Message context not found.', 'error');
+        return;
+    }
 
-    const actionNames = {
-        regenerate: 'Regenerating variation',
-        improve: 'Polishing & improving',
-        shorten: 'Condensing content',
-        expand: 'Elaborating details'
-    };
-
-    showToast(`${actionNames[actionType]}...`, 'info');
+    // We only remove messages AFTER this assistant message? 
+    // Wait, actions like Regenerate/Improve just create a NEW assistant message and replace the current one? 
+    // Yes! Let's just create a new AI bubble below or replace it.
+    // The previous implementation appended a NEW record. Let's just append it.
 
     const loadingId = 'loading-' + Date.now();
     appendLoadingBubble(loadingId);
     setGenerating(true);
+    showToast(`Executing ${actionType}...`, 'info');
 
-    let endpoint = `/api/${actionType}`;
-    let payload = {};
-
-    if (actionType === 'regenerate') {
-        payload = {
-            user_prompt: contextData.user_prompt,
-            content_type: contextData.content_type,
-            tone: contextData.tone,
-            audience: contextData.audience,
-            length: contextData.length,
-            session_id: state.sessionId,
-            previous_response: contextData.generated_response
-        };
-    } else {
-        // Transform endpoints (improve, shorten, expand)
-        payload = {
-            previous_response: contextData.generated_response,
-            user_prompt: contextData.user_prompt,
-            content_type: contextData.content_type,
-            tone: contextData.tone,
-            audience: contextData.audience,
-            length: contextData.length,
-            session_id: state.sessionId
-        };
-    }
+    const payload = {
+        previous_response: msgData.content || msgData.generated_response,
+        user_prompt: msgData.user_prompt || 'Regenerating...',
+        content_type: msgData.content_type || 'GENERAL CONTENT',
+        tone: msgData.tone || 'Professional',
+        audience: msgData.audience || 'General Audience',
+        length: msgData.length || 'Medium',
+        session_id: state.sessionId
+    };
 
     try {
-        const response = await fetch(endpoint, {
+        const response = await fetch(`/api/${actionType}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
 
-        const data = await response.json();
         removeLoadingBubble(loadingId);
 
         if (!response.ok) {
-            throw new Error(data.detail || `Action ${actionType} failed.`);
+            const errData = await response.json();
+            throw new Error(errData.detail || `Action ${actionType} failed.`);
         }
 
+        const data = await response.json();
+        
+        // Remove old AI message, replace with new one.
+        const oldMsg = document.getElementById(msgId);
+        if(oldMsg) oldMsg.remove();
+        
         appendAiMessage(data);
-        loadHistory();
         showToast(`Action ${actionType} completed!`, 'success');
-
     } catch (err) {
         removeLoadingBubble(loadingId);
-        appendErrorMessage(err.message || `Failed to execute ${actionType}.`);
         showToast(err.message || `Failed to execute ${actionType}.`, 'error');
     } finally {
         setGenerating(false);
     }
 }
 
-// ============================================================================
-// Message DOM Rendering
-// ============================================================================
-function appendUserMessage(text) {
-    const msgDiv = document.createElement('div');
-    msgDiv.className = 'chat-message user';
-    msgDiv.innerHTML = `
-        <div class="message-header">
-            <span class="message-sender">You</span>
-            <span>&bull; ${formatCurrentTime()}</span>
-        </div>
-        <div class="message-body">${escapeHtml(text)}</div>
-    `;
-    elements.messagesWindow.appendChild(msgDiv);
-    scrollToBottom();
-}
-
-function appendAiMessage(data) {
-    const msgDiv = document.createElement('div');
-    msgDiv.className = 'chat-message ai';
-
-    const cleanText = data.generated_response;
-    const msgId = 'ai-msg-' + (data.id || Date.now());
-    
-    // Store data so we don't need to inline JSON stringify it (which breaks on quotes)
-    messageDataStore[msgId] = data;
-
-    msgDiv.innerHTML = `
-        <div class="message-header">
-            <span class="message-sender">AI Assistant (${data.model || 'openai/gpt-oss-120b'})</span>
-            <span class="badge badge-blue">${escapeHtml(data.content_type)}</span>
-            <span class="pill">${escapeHtml(data.tone)}</span>
-            <span class="pill">${escapeHtml(data.audience)}</span>
-            <span class="pill">${escapeHtml(data.length)}</span>
-            <span>&bull; ${formatTimestamp(data.created_at)}</span>
-        </div>
-        <div class="message-body" id="${msgId}">${escapeHtml(cleanText)}</div>
-        <div class="message-actions">
-            <button class="action-btn" onclick="copyTextFromElement('${msgId}', this)">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-                <span>Copy</span>
-            </button>
-            <button class="action-btn" onclick="downloadFromStore('${msgId}')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                <span>Download (.txt)</span>
-            </button>
-            <button class="action-btn" onclick="triggerActionFromButton('regenerate', '${msgId}')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-                <span>Regenerate</span>
-            </button>
-            <button class="action-btn" onclick="triggerActionFromButton('improve', '${msgId}')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                <span>Improve</span>
-            </button>
-            <button class="action-btn" onclick="triggerActionFromButton('shorten', '${msgId}')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/></svg>
-                <span>Shorten</span>
-            </button>
-            <button class="action-btn" onclick="triggerActionFromButton('expand', '${msgId}')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
-                <span>Expand</span>
-            </button>
-        </div>
-    `;
-
-    elements.messagesWindow.appendChild(msgDiv);
-    scrollToBottom();
-}
-
-function triggerActionFromButton(actionType, msgId) {
-    const data = messageDataStore[msgId];
-    if (data) executeResponseAction(actionType, data);
-}
-
-function downloadFromStore(msgId) {
-    const data = messageDataStore[msgId];
-    if (data) downloadResponseText(data.generated_response, data.content_type);
-}
-
-function appendLoadingBubble(id) {
-    const loadingDiv = document.createElement('div');
-    loadingDiv.className = 'chat-message ai';
-    loadingDiv.id = id;
-    loadingDiv.innerHTML = `
-        <div class="message-header">
-            <span class="message-sender">AI Assistant</span>
-            <span>&bull; Thinking &amp; Generating...</span>
-        </div>
-        <div class="message-body">
-            <div class="loading-dots">
-                <span></span><span></span><span></span>
-            </div>
-            <span style="font-size:0.85rem; color:var(--text-secondary); margin-left: 8px;">
-                Constructing prompt &amp; consulting local Llama 3.2...
-            </span>
-        </div>
-    `;
-    elements.messagesWindow.appendChild(loadingDiv);
-    scrollToBottom();
-}
-
-function removeLoadingBubble(id) {
-    const el = document.getElementById(id);
-    if (el) el.remove();
-}
-
-function appendErrorMessage(msg) {
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'chat-message ai';
-    errorDiv.innerHTML = `
-        <div class="message-header">
-            <span class="message-sender" style="color:#f87171;">System Alert</span>
-        </div>
-        <div class="message-body" style="background-color: var(--danger-bg); border-color: rgba(239, 68, 68, 0.4); color: #fee2e2;">
-            <strong>Generation Notice:</strong> ${escapeHtml(msg)}
-            <br><small style="color:#fca5a5; display:block; margin-top:4px;">Please check your Groq API key and model configuration.</small>
-        </div>
-    `;
-    elements.messagesWindow.appendChild(errorDiv);
-    scrollToBottom();
-}
-
-function clearChatScreen() {
-    elements.messagesWindow.innerHTML = '';
-    if (elements.emptyState) {
-        elements.emptyState.style.display = 'block';
-        elements.messagesWindow.appendChild(elements.emptyState);
-    }
-    showToast('Chat screen cleared.', 'info');
-}
-
-function scrollToBottom() {
-    elements.messagesWindow.scrollTop = elements.messagesWindow.scrollHeight;
-}
-
-// ============================================================================
-// Clipboard & Download Functionality
-// ============================================================================
-async function copyTextFromElement(elementId, buttonEl) {
-    const el = document.getElementById(elementId);
-    if (!el) return;
-
-    const textToCopy = el.innerText || el.textContent;
-    await copyText(textToCopy, buttonEl);
-}
-
-async function copyText(text, buttonEl) {
-    try {
-        await navigator.clipboard.writeText(text);
-        if (buttonEl) {
-            const originalHTML = buttonEl.innerHTML;
-            buttonEl.classList.add('active-action');
-            buttonEl.innerHTML = `
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                <span style="color:#34d399; font-weight:600;">Copied!</span>
-            `;
-            setTimeout(() => {
-                buttonEl.innerHTML = originalHTML;
-                buttonEl.classList.remove('active-action');
-            }, 2000);
-        }
+window.copyContent = function(msgId) {
+    const msgData = messageDataStore[msgId];
+    if(!msgData) return;
+    const text = msgData.content || msgData.generated_response;
+    navigator.clipboard.writeText(text).then(() => {
         showToast('Copied to clipboard!', 'success');
-    } catch (err) {
-        console.error('Clipboard copy error:', err);
+    }).catch(() => {
         showToast('Unable to copy to clipboard.', 'error');
-    }
-}
-
-function downloadResponseText(text, contentType) {
-    try {
-        const typeSlug = (contentType || 'content').toLowerCase().replace(/\s+/g, '_');
-        const filename = `${typeSlug}_${new Date().toISOString().slice(0, 10)}.txt`;
-
-        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-        const downloadUrl = URL.createObjectURL(blob);
-
-        const a = document.createElement('a');
-        a.href = downloadUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(downloadUrl);
-
-        showToast(`Downloaded as ${filename}`, 'success');
-    } catch (err) {
-        console.error('Download error:', err);
-        showToast('Download failed.', 'error');
-    }
-}
-
-// ============================================================================
-// Sample Prompts Handler
-// ============================================================================
-function applySamplePrompt(contentType, promptText, tone, audience, length) {
-    elements.contentType.value = contentType;
-    elements.tone.value = tone;
-    elements.audience.value = audience;
-    elements.length.value = length;
-    elements.promptInput.value = promptText;
-
-    switchTab('chat');
-    elements.promptInput.focus();
-}
-
-// ============================================================================
-// History Management
-// ============================================================================
-async function loadHistory() {
-    try {
-        const response = await fetch('/api/history?limit=50');
-        if (!response.ok) throw new Error('Failed to load history.');
-
-        const data = await response.json();
-        state.historyCache = data.items || [];
-
-        // Update badge
-        if (elements.historyCountBadge) {
-            elements.historyCountBadge.textContent = data.total || 0;
-        }
-
-        renderHistory(state.historyCache);
-    } catch (err) {
-        console.error('History fetch error:', err);
-        if (elements.historyContainer) {
-            elements.historyContainer.innerHTML = `
-                <div class="empty-state">
-                    <p class="text-muted">Could not load history.</p>
-                </div>
-            `;
-        }
-    }
-}
-
-function renderHistory(items) {
-    if (!elements.historyContainer) return;
-
-    if (!items || items.length === 0) {
-        elements.historyContainer.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                </div>
-                <h3>No History Recorded Yet</h3>
-                <p>Generated responses will be saved automatically to the local SQLite database.</p>
-            </div>
-        `;
-        return;
-    }
-
-    elements.historyContainer.innerHTML = '';
-
-    items.forEach(item => {
-        const card = document.createElement('div');
-        card.className = 'history-card';
-        card.innerHTML = `
-            <div class="history-card-header">
-                <span class="badge badge-blue">${escapeHtml(item.content_type)}</span>
-                <span class="text-muted text-sm">${formatTimestamp(item.created_at)}</span>
-            </div>
-            <div class="history-prompt-preview">${escapeHtml(item.user_prompt)}</div>
-            <div class="history-response-preview">${escapeHtml(item.generated_response)}</div>
-            <div class="history-card-footer">
-                <div style="display:flex; gap:6px;">
-                    <span class="pill">${escapeHtml(item.tone)}</span>
-                    <span class="pill">${escapeHtml(item.length)}</span>
-                </div>
-                <div style="display:flex; gap:6px;">
-                    <button class="btn btn-sm btn-outline" onclick="openHistoryItem(${item.id})">Open</button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteHistoryItem(${item.id}, event)">Delete</button>
-                </div>
-            </div>
-        `;
-        elements.historyContainer.appendChild(card);
     });
 }
 
-async function deleteHistoryItem(id, event) {
-    if (event) event.stopPropagation();
+window.downloadContent = function(msgId) {
+    const msgData = messageDataStore[msgId];
+    if(!msgData) return;
+    const text = msgData.content || msgData.generated_response;
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `AI_Content_${new Date().getTime()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Downloaded successfully', 'success');
+}
 
-    if (!confirm(`Delete history entry #${id}?`)) return;
-
+async function loadSessions() {
     try {
-        const res = await fetch(`/api/history/${id}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error('Failed to delete history item.');
-
-        showToast('History item deleted.', 'success');
-        loadHistory();
+        const response = await fetch('/api/sessions');
+        if (!response.ok) return;
+        const data = await response.json();
+        state.sessionsCache = data.items || [];
+        renderSessionsSidebar();
     } catch (err) {
-        showToast(err.message || 'Error deleting item.', 'error');
+        console.error('Failed to load sessions', err);
     }
 }
 
-async function confirmClearAllHistory() {
-    if (!state.historyCache || state.historyCache.length === 0) {
-        showToast('History is already empty.', 'info');
+function renderSessionsSidebar() {
+    if (!elements.sidebarSessionsList) return;
+    elements.sidebarSessionsList.innerHTML = '';
+    
+    if (state.sessionsCache.length === 0) {
+        elements.sidebarSessionsList.innerHTML = '<div style="padding:1rem; text-align:center; color: var(--text-muted); font-size: 0.9rem;">No chats yet</div>';
         return;
     }
 
-    if (!confirm('Are you sure you want to delete ALL conversation history? This cannot be undone.')) {
-        return;
-    }
+    state.sessionsCache.forEach(session => {
+        const isActive = session.id === state.sessionId;
+        const div = document.createElement('div');
+        div.className = 'session-item';
+        div.style = `
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            margin-bottom: 2px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: ${isActive ? 'var(--bg-input)' : 'transparent'};
+        `;
+        div.innerHTML = `
+            <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.9rem; flex: 1;" onclick="openSession('${session.id}')">
+                ${escapeHtml(session.title)}
+            </span>
+            <button onclick="deleteSession('${session.id}', event)" class="action-btn" style="padding: 2px 4px; border: none; background: transparent; color: var(--text-muted);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+        `;
+        // hover effect
+        div.onmouseover = () => { if(!isActive) div.style.background = 'rgba(255,255,255,0.05)'; };
+        div.onmouseout = () => { if(!isActive) div.style.background = 'transparent'; };
+        
+        elements.sidebarSessionsList.appendChild(div);
+    });
+}
 
+window.openSession = async function(sessionId) {
+    if(state.sessionId === sessionId) return;
+    
+    state.sessionId = sessionId;
+    clearChatWindow();
+    const loadingId = 'loading-' + Date.now();
+    appendLoadingBubble(loadingId);
+    
     try {
-        const res = await fetch('/api/history', { method: 'DELETE' });
-        if (!res.ok) throw new Error('Failed to clear history.');
-
+        const res = await fetch(`/api/sessions/${sessionId}`);
+        if(!res.ok) throw new Error("Failed to load session");
         const data = await res.json();
-        showToast(`History cleared (${data.deleted_count || 0} items removed).`, 'success');
-        loadHistory();
-    } catch (err) {
-        showToast(err.message || 'Error clearing history.', 'error');
+        
+        removeLoadingBubble(loadingId);
+        if(elements.emptyState) elements.emptyState.style.display = 'none';
+        
+        data.messages.forEach(msg => {
+            if(msg.role === 'user') {
+                appendUserMessage(msg.content, msg.id);
+            } else {
+                appendAiMessage(msg);
+            }
+        });
+        
+        renderSessionsSidebar(); // highlight active
+        switchTab('chat');
+    } catch(e) {
+        removeLoadingBubble(loadingId);
+        showToast(e.message, 'error');
     }
 }
 
-// ============================================================================
-// History Modal
-// ============================================================================
-function openHistoryItem(id) {
-    const item = state.historyCache.find(x => x.id === id);
-    if (!item) return;
-
-    state.selectedHistoryItem = item;
-
-    elements.modalContentType.textContent = item.content_type;
-    elements.modalTimestamp.textContent = formatTimestamp(item.created_at);
-    elements.modalTone.textContent = 'Tone: ' + item.tone;
-    elements.modalAudience.textContent = 'Audience: ' + item.audience;
-    elements.modalLength.textContent = 'Length: ' + item.length;
-    elements.modalPrompt.textContent = item.user_prompt;
-    elements.modalResponse.textContent = item.generated_response;
-
-    elements.historyModal.classList.remove('hidden');
-}
-
-function closeHistoryModal() {
-    elements.historyModal.classList.add('hidden');
-    state.selectedHistoryItem = null;
-}
-
-function copyModalContent() {
-    if (!state.selectedHistoryItem) return;
-    const btn = document.getElementById('modal-copy-btn');
-    copyText(state.selectedHistoryItem.generated_response, btn);
-}
-
-function downloadModalContent() {
-    if (!state.selectedHistoryItem) return;
-    downloadResponseText(
-        state.selectedHistoryItem.generated_response,
-        state.selectedHistoryItem.content_type
-    );
-}
-
-function loadHistoryIntoChat() {
-    if (!state.selectedHistoryItem) return;
-
-    const item = state.selectedHistoryItem;
-    closeHistoryModal();
-
-    // Switch to chat tab
-    switchTab('chat');
-
-    // Populate control settings
-    elements.contentType.value = item.content_type;
-    elements.tone.value = item.tone;
-    elements.audience.value = item.audience;
-    elements.length.value = item.length;
-
-    // Render message into chat window
-    if (elements.emptyState) {
-        elements.emptyState.style.display = 'none';
+window.deleteSession = async function(sessionId, e) {
+    e.stopPropagation();
+    if(!confirm("Delete this chat?")) return;
+    
+    try {
+        const res = await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' });
+        if(!res.ok) throw new Error("Failed to delete session");
+        
+        showToast("Chat deleted", "success");
+        if(state.sessionId === sessionId) {
+            startNewChat();
+        }
+        loadSessions();
+    } catch(e) {
+        showToast(e.message, 'error');
     }
-
-    appendUserMessage(item.user_prompt);
-    appendAiMessage(item);
-
-    showToast('Loaded into chat view.', 'info');
 }
 
-// ============================================================================
-// Notification Toast System
-// ============================================================================
+// Ensure the first load of app works properly
+window.applySamplePrompt = function(ct, text, tone, aud, len) {
+    elements.contentType.value = ct;
+    elements.promptInput.value = text;
+    elements.tone.value = tone;
+    elements.audience.value = aud;
+    elements.length.value = len;
+    elements.promptInput.focus();
+}
+
 function showToast(message, type = 'info') {
     if (!elements.toastContainer) return;
-
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-
     let iconSvg = '';
     if (type === 'success') {
         iconSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
@@ -755,53 +627,11 @@ function showToast(message, type = 'info') {
     } else {
         iconSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
     }
-
-    toast.innerHTML = `${iconSvg} <span>${escapeHtml(message)}</span>`;
+    toast.innerHTML = `<div class="toast-icon">${iconSvg}</div><div class="toast-message">${escapeHtml(message)}</div>`;
     elements.toastContainer.appendChild(toast);
-
+    setTimeout(() => toast.classList.add('show'), 10);
     setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateY(12px)';
-        toast.style.transition = 'all 0.3s ease';
+        toast.classList.remove('show');
         setTimeout(() => toast.remove(), 300);
-    }, 3500);
-}
-
-// ============================================================================
-// Utilities
-// ============================================================================
-function escapeHtml(str) {
-    if (!str) return '';
-    return str
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
-
-function formatCurrentTime() {
-    return new Date().toLocaleTimeString('en-IN', {
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: 'Asia/Kolkata'
-    });
-}
-
-function formatTimestamp(isoStr) {
-    if (!isoStr) return formatCurrentTime();
-    try {
-        const d = new Date(isoStr);
-        return d.toLocaleDateString('en-IN', {
-            month: 'short',
-            day: 'numeric',
-            timeZone: 'Asia/Kolkata'
-        }) + ' ' + d.toLocaleTimeString('en-IN', {
-            hour: '2-digit',
-            minute: '2-digit',
-            timeZone: 'Asia/Kolkata'
-        });
-    } catch {
-        return isoStr;
-    }
+    }, 3000);
 }
