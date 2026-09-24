@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # AI Content Generation Chatbot Using LLM and Prompt Engineering
 
 A production-style academic mini-project designed for a **Generative AI / AI curriculum**. Built from scratch using **Python FastAPI**, **Vanilla HTML5/CSS3/JavaScript**, **SQLite with SQLAlchemy**, and **Groq (gpt-oss-120b)**.
@@ -261,12 +260,6 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-Open your web browser and navigate to:
-- **Application UI:** [http://localhost:8000](http://localhost:8000)
-- **Interactive Swagger API Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Alternative ReDoc Docs:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
-- **Health Check:** [http://localhost:8000/api/health](http://localhost:8000/api/health)
-
 ### Option 1: Using run.py (Recommended)
 ```powershell
 python run.py
@@ -276,12 +269,6 @@ python run.py
 ```powershell
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-
-Open your web browser and navigate to:
-- **Application UI:** [http://localhost:8000](http://localhost:8000)
-- **Interactive Swagger API Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Alternative ReDoc Docs:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
-
 ---
 
 ## 9. Application Walkthrough & User Guide
@@ -383,6 +370,7 @@ pytest tests/ -v
 
 *All unit tests run independently of whether Groq is active.*
 
+<<<<<<< HEAD
 ---
 
 ## 13. Render Cloud Deployment
@@ -552,6 +540,9 @@ This ensures Render can monitor the application health even when AI generation i
 ---
 
 ## 15. Conclusion & Learning Outcomes
+=======
+## 13. Conclusion & Learning Outcomes
+>>>>>>> c0441cf4ae92005b4a151b2f1cc74fe899d2b253
 
 Through building this project, the following core competencies were developed:
 1. Orchestrating local LLMs via REST APIs without paid commercial services.
@@ -559,6 +550,3 @@ Through building this project, the following core competencies were developed:
 3. Architecting clean, decoupled Python FastAPI backends with Pydantic validation.
 4. Implementing local persistence with SQLite and SQLAlchemy.
 5. Building responsive, accessible user interfaces using pure web standards (HTML5/CSS3/JavaScript).
-=======
-# AI_Content_Generation_Chatbot
->>>>>>> 1c8c133cebb8153ea7954d6da1b242fc545feadd
