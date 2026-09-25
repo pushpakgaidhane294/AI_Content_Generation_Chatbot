@@ -488,20 +488,34 @@ window.copyContent = function(msgId) {
     });
 }
 
-window.downloadContent = function(msgId) {
+window.downloadContent = async function(msgId) {
     const msgData = messageDataStore[msgId];
     if(!msgData) return;
     const text = msgData.content || msgData.generated_response;
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `AI_Content_${new Date().getTime()}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showToast('Downloaded successfully', 'success');
+    
+    try {
+        showToast('Generating document...', 'info');
+        const res = await fetch('/api/download/docx', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: text })
+        });
+        
+        if (!res.ok) throw new Error('Download failed');
+        
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `generated_content.docx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Downloaded successfully', 'success');
+    } catch (err) {
+        showToast('Download failed', 'error');
+    }
 }
 
 async function loadSessions() {
