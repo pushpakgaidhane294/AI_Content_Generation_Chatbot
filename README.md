@@ -12,15 +12,15 @@ An AI-powered chatbot that uses Groq-hosted large language models and structured
 
 ---
 
-## 3. PROJECT OVERVIEW
+## 1. PROJECT OVERVIEW
 
 This project is a modern web-based AI assistant designed to generate structured, context-aware content. By bridging an intuitive chat interface with the lightning-fast Groq API, the application allows users to dictate parameters like tone, audience, and length. Behind the scenes, the FastAPI backend uses advanced Prompt Engineering to ensure the Large Language Model generates highly specific, well-formatted results. All conversational context is saved across multiple chat sessions using a local SQLite database, allowing users to return to past sessions seamlessly.
 
-## 4. PROBLEM STATEMENT
+## 2. PROBLEM STATEMENT
 
 Users often need to generate various forms of content (professional emails, academic reports, technical explanations, interview answers). Traditional manual writing requires significant time and effort, and generic AI chatbots often output unpredictable or unstructured responses unless meticulously prompted. This application solves this by providing a unified UI where users simply provide instructions and toggle generation parameters, offloading the heavy burden of prompt engineering to the backend.
 
-## 5. OBJECTIVES
+## 3. OBJECTIVES
 
 * Build a Generative AI chatbot.
 * Integrate an LLM through Groq API.
@@ -33,7 +33,7 @@ Users often need to generate various forms of content (professional emails, acad
 * Allow editing and regenerating previous prompts.
 * Provide a deployable web application.
 
-## 6. KEY FEATURES
+## 4. KEY FEATURES
 
 ### AI Generation
 * Email generation
@@ -66,7 +66,7 @@ Users often need to generate various forms of content (professional emails, acad
 * Loading state & Error handling
 * Responsive UI with Markdown rendering (`marked.js`)
 
-## 7. TECHNOLOGY STACK
+## 5. TECHNOLOGY STACK
 
 | Layer           | Technology              |
 | --------------- | ----------------------- |
@@ -82,7 +82,7 @@ Users often need to generate various forms of content (professional emails, acad
 | Deployment      | Render                  |
 | Version Control | Git/GitHub              |
 
-## 8. SYSTEM ARCHITECTURE
+## 6. SYSTEM ARCHITECTURE
 
 ```mermaid
 graph TD
@@ -98,7 +98,7 @@ graph TD
     FastAPI -->|Update DOM| HTML/JS
 ```
 
-## 9. HOW THE APPLICATION WORKS
+## 7. HOW THE APPLICATION WORKS
 
 1. User opens the chatbot.
 2. A chat session is created or restored from the sidebar.
@@ -113,7 +113,7 @@ graph TD
 11. Frontend displays the generated response formatted as Markdown.
 12. User can continue chatting, regenerate, improve, shorten, expand, copy, download, or edit their prompt.
 
-## 10. PROMPT ENGINEERING
+## 8. PROMPT ENGINEERING
 
 Prompt engineering is utilized to ensure consistent, high-quality output. Instead of passing the raw user input directly to the LLM, the backend constructs a highly detailed instruction set.
 
@@ -142,7 +142,7 @@ Ensure the tone matches the requested settings and format the output cleanly.
 ```
 This structured approach guarantees better control over generated output.
 
-## 11. CONTENT TYPES
+## 9. CONTENT TYPES
 
 ### Email
 Generates professional and structured emails suitable for corporate environments.
@@ -153,7 +153,7 @@ Explains technical concepts adjusted to the cognitive level of the selected audi
 ### General Content
 Generates general-purpose content based on user instructions.
 
-## 12. CHAT SESSION SYSTEM
+## 10. CHAT SESSION SYSTEM
 
 The application groups messages into unique sessions to organize conversational memory.
 
@@ -174,7 +174,7 @@ Features include:
 * **Open previous chat:** Instantly loads historical messages from SQLite.
 * **Delete chat:** Completely purges a session from the database.
 
-## 13. EDIT & REGENERATE
+## 11. EDIT & REGENERATE
 
 Users can click "Edit" under their previous prompt to modify their request. 
 Upon clicking "Save & Regenerate", the application:
@@ -183,11 +183,11 @@ Upon clicking "Save & Regenerate", the application:
 3. The backend deletes downstream conversational history in the database.
 4. Generates a fresh response seamlessly, continuing the session from the new branch.
 
-## 14. PROMPT TEMPLATES
+## 12. PROMPT TEMPLATES
 
 The application includes predefined dropdown settings (Content Type, Tone, Audience, Length). Selecting different combinations seamlessly modifies the underlying prompt template injected by `PromptService`.
 
-## 15. DATABASE DESIGN
+## 13. DATABASE DESIGN
 
 The SQLite database is managed via SQLAlchemy ORM.
 
@@ -210,7 +210,7 @@ The SQLite database is managed via SQLAlchemy ORM.
 
 **Relationship:** One `ChatSession` -> Many `ChatMessages`.
 
-## 16. API ENDPOINTS
+## 14. API ENDPOINTS
 
 | Method | Endpoint                     | Description               |
 | ------ | ---------------------------- | ------------------------- |
@@ -227,7 +227,7 @@ The SQLite database is managed via SQLAlchemy ORM.
 | PUT    | `/api/sessions/{session_id}/edit_prompt` | Edit & Regenerate |
 | GET    | `/api/groq-status`           | Groq configuration/status |
 
-## 17. PROJECT STRUCTURE
+## 15. PROJECT STRUCTURE
 
 ```text
 AI_Content_Generation_Chatbot/
@@ -270,7 +270,7 @@ AI_Content_Generation_Chatbot/
 └── README.md
 ```
 
-## 18. INSTALLATION
+## 16. INSTALLATION
 
 ```bash
 git clone https://github.com/pushpakgaidhane294/AI_Content_Generation_Chatbot.git
@@ -280,7 +280,7 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-## 19. ENVIRONMENT VARIABLES
+## 17. ENVIRONMENT VARIABLES
 
 Create a `.env` file (never commit this to GitHub) and add:
 
@@ -291,24 +291,24 @@ GROQ_MODEL=openai/gpt-oss-120b
 DATABASE_URL=sqlite:///./chatbot.db
 ```
 
-## 20. GETTING A GROQ API KEY
+## 18. GETTING A GROQ API KEY
 
 To run this application, you must obtain a free API key from the [Groq Console](https://console.groq.com/).
 
-## 21. RUN LOCALLY
+## 19. RUN LOCALLY
 
 ```bash
 uvicorn app.main:app --reload
 ```
 Open your browser to `http://127.0.0.1:8000`.
 
-## 22. API DOCUMENTATION
+## 20. API DOCUMENTATION
 
 FastAPI automatically generates interactive OpenAPI documentation. Once the server is running, visit:
 * `/docs` for Swagger UI
 * `/redoc` for ReDoc UI
 
-## 23. TESTING
+## 21. TESTING
 
 Run the comprehensive test suite using:
 ```bash
@@ -316,7 +316,7 @@ pytest
 ```
 Tests cover prompt engineering generation, health endpoints, model initialization, and data schemas.
 
-## 24. RENDER DEPLOYMENT
+## 22. RENDER DEPLOYMENT
 
 This project is configured for seamless deployment to [Render](https://render.com).
 
@@ -332,20 +332,20 @@ uvicorn app.main:app --host 0.0.0.0 --port $PORT
 
 Ensure `GROQ_API_KEY` and `GROQ_MODEL` are set directly in Render's Environment Variables dashboard. The included `render.yaml` automatically orchestrates the web service configuration.
 
-## 25. SECURITY
+## 23. SECURITY
 
 * API keys are securely stored in environment variables and are never exposed to frontend JavaScript.
 * `.env` is listed in `.gitignore` to prevent accidental commits.
 * Server-side Groq requests ensure strict prompt boundaries.
 * Input validation is strictly enforced via FastAPI and Pydantic schemas.
 
-## 26. ERROR HANDLING
+## 24. ERROR HANDLING
 
 * **Network/API Errors:** Caught by the Groq Service layer and translated into user-friendly HTTP 500/503 errors.
 * **Token Limits (HTTP 413):** The backend truncates session history arrays to prevent exceeding Groq TPM limits.
 * **Validation Errors (HTTP 422):** Pydantic immediately rejects invalid content types or empty prompts before contacting the LLM.
 
-## 27. UI FEATURES
+## 25. UI FEATURES
 
 * Session History Sidebar
 * Modern Chat Bubbles (User / AI separation)
@@ -354,7 +354,7 @@ Ensure `GROQ_API_KEY` and `GROQ_MODEL` are set directly in Render's Environment 
 * Inline Prompt Editing
 * Markdown Rendering
 
-## 28. USE CASES
+## 26. USE CASES
 
 * Writing professional emails
 * Academic report drafting
@@ -364,7 +364,7 @@ Ensure `GROQ_API_KEY` and `GROQ_MODEL` are set directly in Render's Environment 
 * Social media content
 * General writing assistance
 
-## 29. EXAMPLE
+## 27. EXAMPLE
 
 ### Input
 ```text
@@ -374,7 +374,7 @@ Explain REST API to a beginner.
 
 The system intercepts this, retrieves previous conversational memory, constructs a strict instructional prompt dictating a "Beginner-friendly analogy", and seamlessly pipes the result from Groq to the screen.
 
-## 30. ADVANTAGES
+## 28. ADVANTAGES
 
 * Centralized AI content generation
 * Customizable output via prompt engineering
@@ -383,13 +383,13 @@ The system intercepts this, retrieves previous conversational memory, constructs
 * Easy web interface
 * Production-ready deployment architecture
 
-## 31. LIMITATIONS
+## 29. LIMITATIONS
 
 * Generated content may require human verification.
 * Groq API availability depends on external service uptime and token limits.
 * SQLite is suitable for this academic scale but would require migration to PostgreSQL for massive multi-user scaling.
 
-## 32. FUTURE ENHANCEMENTS
+## 30. FUTURE ENHANCEMENTS
 
 * User authentication
 * PostgreSQL database transition
@@ -397,7 +397,7 @@ The system intercepts this, retrieves previous conversational memory, constructs
 * Document upload / summarization
 * Export to PDF/DOCX
 
-## 33. ACADEMIC RELEVANCE
+## 31. ACADEMIC RELEVANCE
 
 This project serves as a comprehensive demonstration of:
 * Generative AI & Large Language Models
@@ -408,7 +408,7 @@ This project serves as a comprehensive demonstration of:
 * Software Testing (Pytest)
 * Cloud Deployment (Render)
 
-## 34. LEARNING OUTCOMES
+## 32. LEARNING OUTCOMES
 
 * Understanding LLM-based content generation
 * Designing structured prompts
@@ -417,11 +417,11 @@ This project serves as a comprehensive demonstration of:
 * Managing conversational data
 * Deploying an AI application
 
-## 35. PROJECT STATUS
+## 33. PROJECT STATUS
 
 Status: Completed / Working
 
-## 36. AUTHOR
+## 34. AUTHOR
 
 **Pushpak Gaidhane**
 
@@ -430,6 +430,6 @@ YCCE, Nagpur
 
 [GitHub Profile](https://github.com/pushpakgaidhane294) | [LinkedIn Profile](https://www.linkedin.com/in/pushpak-gaidhane/)
 
-## 37. LICENSE
+## 35. LICENSE
 
 This project was developed for academic and educational purposes.
